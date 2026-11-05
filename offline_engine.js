@@ -1,0 +1,409 @@
+/* Wheee!ekend — офлайн-движок маршрутов.
+   Работает целиком в браузере на кэшированной базе мест,
+   чтобы приложение открывалось и строило прогулки без Mac и без интернета. */
+(function (global) {
+  "use strict";
+
+  const WALK_SPEED_KMH = 4.4;
+
+  function haversineKm(a, b) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const [lat1, lon1] = a;
+    const [lat2, lon2] = b;
+    const R = 6371;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  }
+
+  function walkingDistanceKm(a, b) {
+    return +(haversineKm(a, b) * 1.32).toFixed(2);
+  }
+
+  function walkingMinutes(km) {
+    return Math.max(4, Math.round((km / WALK_SPEED_KMH) * 60));
+  }
+
+  function evaluatePlaceCandidate(place, memory) {
+    const visited = Boolean(memory.visitedPlaces && memory.visitedPlaces[place.id]);
+    const record = memory.visitedPlaces && memory.visitedPlaces[place.id];
+    const unseen = (place.exhibitions || []).filter(
+      (ex) => !(memory.seenExhibitions && memory.seenExhibitions[ex.id])
+    );
+
+    if (!visited) {
+      return {
+        eligible: true,
+        reasonType: "new_place",
+        badge: unseen.length > 0 ? "Не был + выставка" : "Ты здесь ещё не был",
+        activeExhibition: unseen[0] || null
+      };
+    }
+
+    const allowNewEx =
+      !memory.settings || memory.settings.allowVisitedIfNewExhibition !== false;
+    if (allowNewEx && (!record || !record.skipEvenNewExhibitions) && unseen.length > 0) {
+      return {
+        eligible: true,
+        reasonType: "new_exhibition_in_visited",
+        badge: "Был здесь, но НОВАЯ выставка",
+        activeExhibition: unseen[0]
+      };
+    }
+
+    return {
+      eligible: false,
+      reasonType: "already_visited",
+      badge: "Уже был",
+      activeExhibition: null
+    };
+  }
+
+  function orderStopsGeographically(stops) {
+    if (stops.length <= 2) return stops.slice();
+    const remaining = stops.slice();
+    remaining.sort((a, b) => b.coords[0] - a.coords[0]);
+    const ordered = [remaining.shift()];
+    while (remaining.length > 0) {
+      const last = ordered[ordered.length - 1];
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const d = haversineKm(last.coords, remaining[i].coords);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+      ordered.push(remaining.splice(bestIdx, 1)[0]);
+    }
+    return ordered;
+  }
+
+  function buildMapLinks(stops) {
+    const rtext = stops
+      .map((s) => `${s.coords[0].toFixed(5)},${s.coords[1].toFixed(5)}`)
+      .join("~");
+    const pt = stops
+      .map((s, i) => `${s.coords[1].toFixed(5)},${s.coords[0].toFixed(5)},pm2rdm${i + 1}`)
+      .join("~");
+    const cLat = stops.reduce((a, s) => a + s.coords[0], 0) / (stops.length || 1);
+    const cLon = stops.reduce((a, s) => a + s.coords[1], 0) / (stops.length || 1);
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    return {
+      yandexWebUrl: `https://yandex.ru/maps/?rtext=${rtext}&rtt=pd`,
+      yandexAppUrl: `yandexmaps://maps.yandex.ru/?rtext=${rtext}&rtt=pd`,
+      yandexWidgetIframeUrl: `https://yandex.ru/map-widget/v1/?ll=${cLon.toFixed(
+        5
+      )}%2C${cLat.toFixed(5)}&z=14&pt=${pt}&lang=ru_RU`,
+      startMetro: first ? first.metro : "",
+      endMetro: last ? last.metro : ""
+    };
+  }
+
+  function realisticStopDurationMin(place, mode, isSuburb) {
+    const scale = mode === "short" ? 0.78 : mode === "long" ? 1.15 : 1;
+    if (isSuburb) {
+      return Math.round(Math.min(60, Math.max(30, place.durationMin || 45)) * scale / 5) * 5;
+    }
+    if (place.category === "courtyard") {
+      const base = Math.min(25, Math.max(15, Math.round((place.durationMin || 30) * 0.55)));
+      return Math.max(15, Math.round((base * scale) / 5) * 5);
+    }
+    if (place.category === "nature") {
+      const base = Math.min(45, Math.max(25, Math.round((place.durationMin || 45) * 0.75)));
+      return Math.max(20, Math.round((base * scale) / 5) * 5);
+    }
+    const base = Math.min(55, Math.max(35, Math.round((place.durationMin || 50) * 0.85)));
+    return Math.max(30, Math.round((base * scale) / 5) * 5);
+  }
+
+  function shortenName(name) {
+    const clean = String(name || "").split("(")[0].split(":")[0].split(" и ")[0].trim();
+    return clean.length > 32 ? clean.slice(0, 30) + "…" : clean;
+  }
+
+  function generateRouteTitle(cluster, stops, focus) {
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    const exStop = stops.find((s) => s.activeExhibition);
+    if (cluster.areaType === "suburb") {
+      return `${cluster.shortName}: ${stops.map((s) => shortenName(s.name)).join(" → ")}`;
+    }
+    if (focus === "exhibition" && exStop) {
+      return `${cluster.shortName}: ${shortenName(exStop.name)} и маршрут рядом`;
+    }
+    if (first && last && first.id !== last.id) {
+      return `${cluster.shortName}: от ${shortenName(first.name)} до ${shortenName(last.name)}`;
+    }
+    return `Прогулка: ${cluster.shortName}`;
+  }
+
+  function enrichRouteStops(rawStops, cluster, focus, memory, mode) {
+    const ordered = orderStopsGeographically(rawStops);
+    const isSuburb = cluster.areaType === "suburb";
+    let totalWalkKm = 0.8;
+    let totalWalkMin = 11;
+    let totalExploreMin = 0;
+
+    const stops = ordered.map((place, idx) => {
+      const ev = evaluatePlaceCandidate(place, memory);
+      let walkFromPrevKm = 0;
+      let walkFromPrevMin = 0;
+      if (idx > 0) {
+        walkFromPrevKm = walkingDistanceKm(ordered[idx - 1].coords, place.coords);
+        walkFromPrevMin = walkingMinutes(walkFromPrevKm);
+        totalWalkKm += walkFromPrevKm;
+        totalWalkMin += walkFromPrevMin;
+      }
+      const internal =
+        place.category === "nature"
+          ? 0.85
+          : isSuburb
+          ? 0.75
+          : place.category === "courtyard"
+          ? 0.25
+          : 0.3;
+      totalWalkKm += internal;
+      totalWalkMin += Math.round((internal / WALK_SPEED_KMH) * 60);
+
+      const durationMin = realisticStopDurationMin(place, mode, isSuburb);
+      totalExploreMin += durationMin;
+
+      return {
+        ...place,
+        durationMin,
+        stepNumber: idx + 1,
+        statusBadge: memory.unvisitedChecked && memory.unvisitedChecked[place.id]
+          ? "Точно не был"
+          : ev.badge,
+        reasonType: ev.reasonType,
+        activeExhibition: ev.activeExhibition,
+        isWanted: Boolean(memory.likedPlaces && memory.likedPlaces[place.id]),
+        walkFromPrevKm: +walkFromPrevKm.toFixed(2),
+        walkFromPrevMin
+      };
+    });
+
+    const transferWalkMin =
+      11 + stops.reduce((acc, s) => acc + (s.walkFromPrevMin || 0), 0);
+    const totalDurationMin = transferWalkMin + totalExploreMin;
+    const hours = +(totalDurationMin / 60).toFixed(1);
+    const exCount = stops.filter((s) => s.activeExhibition).length;
+    const courtyardCount = stops.filter((s) => s.category === "courtyard").length;
+    const natureCount = stops.filter((s) => s.category === "nature").length;
+    const highlights = [];
+    if (exCount > 0) highlights.push(`${exCount} выставк${exCount === 1 ? "а" : "и"}`);
+    if (courtyardCount > 0) highlights.push("дворы и палаты");
+    if (natureCount > 0) highlights.push("парк / природа");
+
+    return {
+      id: `route_${cluster.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      clusterId: cluster.id,
+      clusterName: cluster.name,
+      clusterShortName: cluster.shortName,
+      areaType: cluster.areaType,
+      title: generateRouteTitle(cluster, stops, focus),
+      subtitle: cluster.vibe,
+      tags: highlights,
+      stops,
+      metrics: {
+        stopCount: stops.length,
+        totalWalkKm: +totalWalkKm.toFixed(1),
+        totalWalkMin,
+        totalExploreMin,
+        totalDurationMin,
+        totalHoursText: `${hours} ч`
+      },
+      mapLinks: buildMapLinks(stops)
+    };
+  }
+
+  function generateRoutes(opts) {
+    const clusters = (opts && opts.clusters) || [];
+    const places = (opts && opts.places) || [];
+    const memory = (opts && opts.memory) || {};
+    const filters = (opts && opts.filters) || {};
+    const focus = filters.focus || "mix";
+    const duration = filters.duration || "medium";
+    const clusterId = filters.clusterId || "any";
+    const exclude = filters.excludeRouteClusterIds || [];
+    const targetCount = duration === "short" ? 3 : duration === "long" ? 5 : 4;
+
+    let candidateClusters = clusters.filter((c) => {
+      if (clusterId !== "any") return c.id === clusterId;
+      if (focus === "suburb") return c.areaType === "suburb";
+      return c.areaType === "moscow";
+    });
+    if (candidateClusters.length === 0) candidateClusters = clusters;
+
+    const scored = [];
+    for (const cluster of candidateClusters) {
+      const clusterPlaces = places.filter((p) => p.clusterId === cluster.id);
+      const eligible = [];
+      for (const p of clusterPlaces) {
+        const ev = evaluatePlaceCandidate(p, memory);
+        if (!ev.eligible) continue;
+        let score = 10 + (p.quizPriority || 6);
+        if (memory.unvisitedChecked && memory.unvisitedChecked[p.id]) score += 12;
+        if (memory.likedPlaces && memory.likedPlaces[p.id]) score += 18;
+        if (ev.reasonType === "new_place") score += 6;
+        if (focus === "courtyard" && p.category === "courtyard") score += 16;
+        if (focus === "exhibition" && (p.category === "exhibition" || ev.activeExhibition)) score += 17;
+        if (focus === "nature" && p.category === "nature") score += 16;
+        if (focus === "mix") {
+          if (ev.activeExhibition) score += 7;
+          if (p.category === "courtyard") score += 5;
+          if (p.category === "nature") score += 5;
+        }
+        score += Math.random() * 7;
+        eligible.push({ place: p, score });
+      }
+      if (eligible.length === 0) continue;
+      eligible.sort((a, b) => b.score - a.score);
+
+      const anchor = eligible[0];
+      const compact = eligible.filter(
+        (it) => cluster.areaType === "suburb" || haversineKm(anchor.place.coords, it.place.coords) <= 3.2
+      );
+      const pool = compact.length >= targetCount ? compact : eligible;
+      let picked = [];
+      if (focus === "mix" && pool.length >= targetCount) {
+        const byCat = {
+          courtyard: pool.filter((x) => x.place.category === "courtyard"),
+          exhibition: pool.filter((x) => x.place.category === "exhibition"),
+          nature: pool.filter((x) => x.place.category === "nature")
+        };
+        if (byCat.courtyard[0]) picked.push(byCat.courtyard[0]);
+        if (byCat.exhibition[0]) picked.push(byCat.exhibition[0]);
+        if (byCat.nature[0] && picked.length < targetCount) picked.push(byCat.nature[0]);
+        for (const item of pool) {
+          if (picked.length >= targetCount) break;
+          if (!picked.includes(item)) picked.push(item);
+        }
+      } else {
+        picked = pool.slice(0, Math.min(targetCount, pool.length));
+      }
+
+      const totalScore =
+        picked.reduce((a, x) => a + x.score, 0) / Math.max(1, picked.length) +
+        (exclude.includes(cluster.id) ? -12 : 0) +
+        Math.random() * 6;
+      scored.push({ cluster, picked: picked.map((x) => x.place), totalScore });
+    }
+
+    scored.sort((a, b) => b.totalScore - a.totalScore);
+    const chosen = scored.slice(0, 3);
+    return chosen
+      .filter((c) => c.picked.length > 0)
+      .map((c) => enrichRouteStops(c.picked, c.cluster, focus, memory, duration));
+  }
+
+  function applySwipe(memory, payload) {
+    const m = memory;
+    const placeId = payload.placeId;
+    if (placeId) {
+      if (payload.direction === "right" || payload.direction === "visited") {
+        m.visitedPlaces[placeId] = {
+          visitedAt: new Date().toISOString(),
+          reason: "Свайп вправо «Был здесь»",
+          skipEvenNewExhibitions: false
+        };
+        delete m.unvisitedChecked[placeId];
+      } else if (payload.direction === "left" || payload.direction === "unvisited") {
+        delete m.visitedPlaces[placeId];
+        m.unvisitedChecked[placeId] = true;
+      } else if (payload.direction === "reset") {
+        delete m.visitedPlaces[placeId];
+        delete m.unvisitedChecked[placeId];
+        delete m.likedPlaces[placeId];
+      }
+    }
+    if (typeof payload.onboardingDone === "boolean") {
+      m.onboardingDone = payload.onboardingDone;
+    }
+    return m;
+  }
+
+  function normalizeRu(str) {
+    return String(str || "")
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/[^a-zа-я0-9\s-]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function applyTell(memory, text, places) {
+    const m = memory;
+    const norm = normalizeRu(text);
+    const newlyVisited = [];
+    if (!norm) return { memory: m, newlyVisited };
+
+    const words = norm.split(" ").filter((w) => w.length >= 5);
+    for (const place of places || []) {
+      const nameWords = normalizeRu(place.name)
+        .split(" ")
+        .filter((w) => w.length >= 5 && !["улица", "площадь", "переулок", "проспект", "город", "музей"].includes(w));
+      if (nameWords.length === 0) continue;
+      let hits = 0;
+      for (const nw of nameWords) {
+        if (words.some((w) => w === nw || w.startsWith(nw.slice(0, 6)))) hits += 1;
+      }
+      const strongEnough = hits >= 2 || (nameWords.length === 1 && hits === 1);
+      if (strongEnough) {
+        m.visitedPlaces[place.id] = {
+          visitedAt: new Date().toISOString(),
+          reason: `Добавлено вручную: «${text.slice(0, 80)}»`,
+          skipEvenNewExhibitions: false
+        };
+        delete m.unvisitedChecked[place.id];
+        newlyVisited.push({ id: place.id, name: place.name });
+      }
+    }
+    return { memory: m, newlyVisited };
+  }
+
+  function completeRoute(memory, route) {
+    const m = memory;
+    if (!route || !Array.isArray(route.stops)) return m;
+    for (const stop of route.stops) {
+      m.visitedPlaces[stop.id] = {
+        visitedAt: new Date().toISOString(),
+        reason: `Прогулка «${route.title}»`,
+        skipEvenNewExhibitions: false
+      };
+      delete m.unvisitedChecked[stop.id];
+      if (stop.activeExhibition) {
+        m.seenExhibitions[stop.activeExhibition.id] = { seenAt: new Date().toISOString() };
+      }
+    }
+    m.completedRoutes = m.completedRoutes || [];
+    m.completedRoutes.unshift({
+      id: route.id,
+      title: route.title,
+      clusterShortName: route.clusterShortName,
+      completedAt: new Date().toISOString(),
+      stopNames: route.stops.map((s) => s.name),
+      totalWalkKm: (route.metrics && route.metrics.totalWalkKm) || 0
+    });
+    return m;
+  }
+
+  const api = {
+    generateRoutes,
+    applySwipe,
+    applyTell,
+    completeRoute,
+    evaluatePlaceCandidate,
+    buildMapLinks,
+    haversineKm
+  };
+
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  global.WheeeOffline = api;
+})(typeof window !== "undefined" ? window : globalThis);
