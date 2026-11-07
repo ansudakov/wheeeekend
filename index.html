@@ -315,6 +315,10 @@
 
       <!-- Разделы навигации -->
       <nav class="burger-nav-list">
+        <button type="button" class="burger-nav-item" id="navToAccountBtn">
+          <span>Аккаунт: <strong id="burgerAccountStatus">вход не выполнен</strong></span>
+          <span class="nav-arrow">→</span>
+        </button>
         <button type="button" class="burger-nav-item" id="installAppBtn">
           <span>Установить приложение на телефон</span>
           <span class="nav-arrow">↓</span>
@@ -361,6 +365,79 @@
         <button type="button" class="outline-btn" id="syncRussianSourcesBtn" style="width:100%; padding:12px;">
           Обновить базу (Узнай Москву + KudaGo)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== МОДАЛКА «АККАУНТ» (ВХОД, РЕГИСТРАЦИЯ, СИНХРОНИЗАЦИЯ) ==================== -->
+  <div class="modal-overlay hidden" id="accountModal">
+    <div class="modal-box account-box">
+      <div class="modal-top">
+        <h3 id="accountModalTitle">Аккаунт</h3>
+        <button type="button" class="close-btn" id="closeAccountModalBtn" aria-label="Закрыть">✕</button>
+      </div>
+
+      <!-- Не выполнен вход -->
+      <div id="accountAuthView">
+        <p class="modal-p">
+          Войдите, чтобы отметки сохранялись в облаке и открывались на любом устройстве.
+          Без входа всё работает как раньше — но только на этом телефоне.
+        </p>
+
+        <div class="account-tabs" role="tablist" aria-label="Вход или регистрация">
+          <button type="button" class="account-tab active" data-account-tab="signin" role="tab" aria-selected="true">
+            Вход
+          </button>
+          <button type="button" class="account-tab" data-account-tab="signup" role="tab" aria-selected="false">
+            Регистрация
+          </button>
+        </div>
+
+        <form id="accountForm" class="account-form" novalidate>
+          <label class="account-field">
+            <span>Почта</span>
+            <input type="email" id="accountEmail" autocomplete="email" inputmode="email"
+                   placeholder="you@example.com" required />
+          </label>
+
+          <label class="account-field">
+            <span>Пароль</span>
+            <input type="password" id="accountPassword" autocomplete="current-password"
+                   placeholder="Минимум 6 символов" required />
+          </label>
+
+          <label class="account-field hidden" id="accountInviteField">
+            <span>Код приглашения</span>
+            <input type="text" id="accountInvite" autocomplete="off" autocapitalize="off"
+                   spellcheck="false" placeholder="например, wheee-2026" />
+          </label>
+
+          <p class="account-message hidden" id="accountMessage" role="status" aria-live="polite"></p>
+
+          <button type="submit" class="primary-cta-wide" id="accountSubmitBtn">Войти</button>
+        </form>
+
+        <div class="account-links">
+          <button type="button" class="account-link-btn" id="accountResetBtn">Забыли пароль?</button>
+        </div>
+
+        <p class="account-hint hidden" id="accountNotConfigured">
+          Аккаунты ещё не подключены. Приложение работает на памяти телефона.
+        </p>
+      </div>
+
+      <!-- Вход выполнен -->
+      <div id="accountProfileView" class="hidden">
+        <p class="account-email" id="accountEmailLabel"></p>
+        <p class="account-sync-status" id="accountSyncStatus">—</p>
+
+        <button type="button" class="primary-cta-wide" id="accountSyncNowBtn">Синхронизировать сейчас</button>
+        <button type="button" class="outline-btn account-signout-btn" id="accountSignOutBtn">Выйти из аккаунта</button>
+
+        <p class="account-hint">
+          Память хранится и на телефоне, и в облаке. Если пропадёт интернет,
+          отметки продолжат сохраняться локально и досинхронизируются сами.
+        </p>
       </div>
     </div>
   </div>
@@ -421,6 +498,8 @@
 
   <div id="toastBar" class="toast-bar hidden"></div>
 
+  <script src="firebase-config.js"></script>
+  <script src="cloud.js"></script>
   <script src="offline_engine.js"></script>
   <script src="app.js"></script>
 </body>

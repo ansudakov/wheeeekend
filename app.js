@@ -170,6 +170,9 @@ function finishBoot() {
   persistMemory(appState.memory);
   persistRoutes(appState.routes, appState.activeRouteIndex);
   persistFilters(appState.filters);
+
+  // Поднимаем аккаунт: если человек уже входил — подтянем память из облака.
+  initAccount();
 }
 
 // ==================== ЛОКАЛЬНОЕ ХРАНИЛИЩЕ (ПАМЯТЬ ТЕЛЕФОНА) ====================
@@ -191,6 +194,8 @@ function persistMemory(memory) {
   } catch (e) {
     console.warn("Не удалось сохранить память локально:", e.message);
   }
+  // Если человек вошёл в аккаунт — тихо досылаем память в облако.
+  scheduleCloudSave(memory);
 }
 
 // Сливаем память телефона и сервера: никогда не теряем локальные отметки.
@@ -383,6 +388,8 @@ window.addEventListener("online", async () => {
     } catch (e) {}
   }
   markOnline();
+  // Вернулась сеть — досылаем накопленное в облако.
+  if (cloudUser()) await syncAccountFromCloud();
 });
 
 function notifyOffline() {
@@ -813,6 +820,28 @@ function bindUIEvents() {
     closeBurger();
     infoModal?.classList.remove("hidden");
   });
+
+  // ---- Аккаунт и облачная синхронизация ----
+  const accountModal = document.getElementById("accountModal");
+  document.getElementById("navToAccountBtn")?.addEventListener("click", () => {
+    closeBurger();
+    openAccountModal();
+  });
+  document.getElementById("closeAccountModalBtn")?.addEventListener("click", () => {
+    accountModal?.classList.add("hidden");
+  });
+  accountModal?.addEventListener("click", (e) => {
+    if (e.target === accountModal) accountModal.classList.add("hidden");
+  });
+  document.querySelectorAll("[data-account-tab]").forEach((btn) => {
+    btn.addEventListener("click", () => setAccountMode(btn.dataset.accountTab));
+  });
+  document.getElementById("accountForm")?.addEventListener("submit", handleAccountSubmit);
+  document.getElementById("accountResetBtn")?.addEventListener("click", handlePasswordReset);
+  document.getElementById("accountSyncNowBtn")?.addEventListener("click", () => {
+    syncAccountFromCloud({ announce: true });
+  });
+  document.getElementById("accountSignOutBtn")?.addEventListener("click", handleSignOut);
 
   // Переход между свайпером и главным экраном
   document.getElementById("openSwipeOverlayBtn")?.addEventListener("click", () => {
@@ -1760,6 +1789,281 @@ function renderMemoryDrawer() {
       fetchFreshRoutes();
     });
   });
+}
+
+// ==================== АККАУНТ И ОБЛАЧНАЯ СИНХРОНИЗАЦИЯ ====================
+
+const accountState = {
+  initialized: false,
+  syncing: false,
+  busy: false,
+  applyingRemote: false,
+  mode: "signin"
+};
+
+let cloudSaveTimer = null;
+
+function cloudClient() {
+  return window.WheeeCloud || null;
+}
+
+function cloudConfigured() {
+  const c = cloudClient();
+  return Boolean(c && c.isConfigured());
+}
+
+function cloudUser() {
+  const c = cloudClient();
+  return c ? c.currentUser() : null;
+}
+
+// Сохраняем не на каждое движение, а через паузу: свайп-сессия
+// не должна превращаться в десятки запросов в секунду.
+function scheduleCloudSave(memory) {
+  if (!cloudConfigured() || !cloudUser()) return;
+  if (accountState.applyingRemote) return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(async () => {
+    const c = cloudClient();
+    if (!c || !cloudUser()) return;
+    await c.pushMemory(memory);
+    updateAccountUi();
+  }, 1200);
+}
+
+async function syncAccountFromCloud(options = {}) {
+  const c = cloudClient();
+  if (!c || !c.isConfigured() || !c.currentUser()) return false;
+  if (accountState.syncing) return false;
+
+  accountState.syncing = true;
+  updateAccountUi();
+  try {
+    const visitedBefore = JSON.stringify(appState.memory.visitedPlaces || {});
+    const remote = await c.pullMemory();
+    let merged = appState.memory;
+
+    if (remote) {
+      // Никогда не теряем ни облачные, ни телефонные отметки.
+      accountState.applyingRemote = true;
+      merged = mergeMemory(appState.memory, remote);
+      appState.memory = merged;
+      persistMemory(merged);
+      accountState.applyingRemote = false;
+    }
+
+    const pushed = await c.pushMemory(merged);
+
+    if (JSON.stringify(merged.visitedPlaces || {}) !== visitedBefore) {
+      renderHeaderBar();
+      renderMemoryDrawer();
+      await fetchFreshRoutes();
+    }
+
+    if (options.announce) {
+      showToast(pushed ? "Память синхронизирована" : "Нет связи — отправим, когда появится сеть");
+    }
+    return pushed;
+  } catch (err) {
+    console.warn("[cloud]", err.code || "", err.message);
+    if (options.announce) showToast(err.message || "Не удалось синхронизировать");
+    return false;
+  } finally {
+    accountState.syncing = false;
+    updateAccountUi();
+  }
+}
+
+async function initAccount() {
+  const c = cloudClient();
+  if (!c || accountState.initialized) return;
+  accountState.initialized = true;
+
+  c.onChange(() => updateAccountUi());
+  try {
+    await c.init();
+  } catch (e) {
+    console.warn("[cloud] init:", e.message);
+  }
+  updateAccountUi();
+
+  if (c.currentUser() && navigator.onLine) {
+    await syncAccountFromCloud();
+  }
+}
+
+function updateAccountUi() {
+  const c = cloudClient();
+  const configured = cloudConfigured();
+  const user = c ? c.currentUser() : null;
+  const status = c ? c.status() : null;
+
+  const burgerStatus = document.getElementById("burgerAccountStatus");
+  if (burgerStatus) {
+    burgerStatus.textContent = user ? user.email : (configured ? "вход не выполнен" : "не подключён");
+  }
+
+  const authView = document.getElementById("accountAuthView");
+  const profileView = document.getElementById("accountProfileView");
+  if (authView && profileView) {
+    authView.classList.toggle("hidden", Boolean(user));
+    profileView.classList.toggle("hidden", !user);
+  }
+
+  const title = document.getElementById("accountModalTitle");
+  if (title) {
+    title.textContent = user ? "Аккаунт" : (accountState.mode === "signup" ? "Регистрация" : "Вход");
+  }
+
+  const notConfigured = document.getElementById("accountNotConfigured");
+  if (notConfigured) notConfigured.classList.toggle("hidden", configured);
+
+  const inviteField = document.getElementById("accountInviteField");
+  if (inviteField) inviteField.classList.toggle("hidden", accountState.mode !== "signup");
+
+  const submit = document.getElementById("accountSubmitBtn");
+  if (submit) {
+    submit.disabled = !configured || accountState.busy;
+    submit.textContent = accountState.busy
+      ? "Подождите…"
+      : (accountState.mode === "signup" ? "Создать аккаунт" : "Войти");
+  }
+
+  const emailLabel = document.getElementById("accountEmailLabel");
+  if (emailLabel && user) emailLabel.textContent = user.email;
+
+  const syncStatus = document.getElementById("accountSyncStatus");
+  if (syncStatus) {
+    syncStatus.classList.remove("is-dirty", "is-syncing");
+    let text = "Готово к синхронизации";
+    if (accountState.syncing) {
+      text = "Сохраняем в облако…";
+      syncStatus.classList.add("is-syncing");
+    } else if (c && c.hasPending()) {
+      text = "Есть несохранённые изменения — отправим, когда появится сеть";
+      syncStatus.classList.add("is-dirty");
+    } else if (status && status.lastSyncAt) {
+      const time = new Date(status.lastSyncAt).toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+      text = `Синхронизировано в ${time}`;
+    }
+    syncStatus.textContent = text;
+  }
+
+  const syncBtn = document.getElementById("accountSyncNowBtn");
+  if (syncBtn) syncBtn.disabled = !user || accountState.syncing;
+
+  const signOutBtn = document.getElementById("accountSignOutBtn");
+  if (signOutBtn) signOutBtn.disabled = !user;
+}
+
+function openAccountModal() {
+  updateAccountUi();
+  document.getElementById("accountModal")?.classList.remove("hidden");
+}
+
+function setAccountMode(mode) {
+  accountState.mode = mode === "signup" ? "signup" : "signin";
+  document.querySelectorAll("[data-account-tab]").forEach((btn) => {
+    const active = btn.dataset.accountTab === accountState.mode;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  const password = document.getElementById("accountPassword");
+  if (password) {
+    password.setAttribute(
+      "autocomplete",
+      accountState.mode === "signup" ? "new-password" : "current-password"
+    );
+  }
+  setAccountMessage("", null);
+  updateAccountUi();
+}
+
+function setAccountMessage(text, type) {
+  const el = document.getElementById("accountMessage");
+  if (!el) return;
+  el.textContent = text || "";
+  el.classList.toggle("hidden", !text);
+  el.classList.toggle("is-error", type === "error");
+  el.classList.toggle("is-ok", type === "ok");
+}
+
+async function handleAccountSubmit(event) {
+  event.preventDefault();
+  const c = cloudClient();
+  if (!c || !c.isConfigured()) {
+    setAccountMessage("Аккаунты ещё не подключены: в firebase-config.js не заполнены ключи.", "error");
+    return;
+  }
+  if (accountState.busy) return;
+
+  const email = (document.getElementById("accountEmail")?.value || "").trim();
+  const password = document.getElementById("accountPassword")?.value || "";
+  const inviteCode = (document.getElementById("accountInvite")?.value || "").trim();
+
+  if (!email) {
+    setAccountMessage("Введите адрес почты.", "error");
+    return;
+  }
+  if (password.length < 6) {
+    setAccountMessage("Пароль должен быть не короче 6 символов.", "error");
+    return;
+  }
+  if (accountState.mode === "signup" && !inviteCode) {
+    setAccountMessage("Введите код приглашения — без него регистрация закрыта.", "error");
+    return;
+  }
+
+  accountState.busy = true;
+  setAccountMessage("", null);
+  updateAccountUi();
+
+  try {
+    if (accountState.mode === "signup") {
+      await c.register({ email, password, inviteCode });
+      showToast("Аккаунт создан — память теперь в облаке");
+    } else {
+      await c.signIn({ email, password });
+      showToast("Вы вошли в аккаунт");
+    }
+    const passwordInput = document.getElementById("accountPassword");
+    if (passwordInput) passwordInput.value = "";
+    await syncAccountFromCloud();
+    updateAccountUi();
+    setAccountMessage("Готово. Отметки синхронизируются между устройствами.", "ok");
+  } catch (err) {
+    setAccountMessage(err.message || "Не удалось выполнить вход.", "error");
+  } finally {
+    accountState.busy = false;
+    updateAccountUi();
+  }
+}
+
+async function handlePasswordReset() {
+  const c = cloudClient();
+  if (!c || !c.isConfigured()) {
+    setAccountMessage("Аккаунты ещё не подключены.", "error");
+    return;
+  }
+  const email = (document.getElementById("accountEmail")?.value || "").trim();
+  try {
+    await c.resetPassword(email);
+    setAccountMessage(`Письмо для сброса пароля отправлено на ${email}. Проверьте папку «Спам».`, "ok");
+  } catch (err) {
+    setAccountMessage(err.message || "Не удалось отправить письмо.", "error");
+  }
+}
+
+function handleSignOut() {
+  const c = cloudClient();
+  if (!c) return;
+  c.signOut();
+  setAccountMessage("", null);
+  updateAccountUi();
+  showToast("Вы вышли из аккаунта. Отметки остались на телефоне.");
 }
 
 let toastTimeout = null;

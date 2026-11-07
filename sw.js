@@ -1,7 +1,7 @@
 /* Wheee!ekend — Service Worker.
    Кэширует оболочку приложения и базу мест, чтобы PWA запускалась
    с домашнего экрана даже без интернета и без запущенного Mac. */
-const VERSION = "wheee-v14";
+const VERSION = "wheee-v15";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
@@ -10,12 +10,15 @@ const DATA_CACHE = `${VERSION}-data`;
 const API_BOOTSTRAP_PATH = new URL("api/bootstrap", self.location.href).pathname;
 const API_PREFIX_PATH = new URL("api/", self.location.href).pathname;
 const BUNDLE_PATH = new URL("places_bundle.json", self.location.href).pathname;
+const CONFIG_PATH = new URL("firebase-config.js", self.location.href).pathname;
 
 const SHELL_ASSETS = [
   "./",
   "index.html",
   "styles.css",
   "app.js",
+  "cloud.js",
+  "firebase-config.js",
   "offline_engine.js",
   "manifest.json",
   "icon.svg",
@@ -145,6 +148,13 @@ self.addEventListener("fetch", (event) => {
   // Навигация: сеть → кэш → index.html
   if (request.mode === "navigate") {
     event.respondWith(networkFirst(request, SHELL_CACHE, "index.html"));
+    return;
+  }
+
+  // Настройки Firebase: всегда сначала сеть, чтобы правки конфига
+  // подхватывались сразу, а не после смены версии кэша.
+  if (url.pathname === CONFIG_PATH) {
+    event.respondWith(networkFirst(request, SHELL_CACHE, "firebase-config.js"));
     return;
   }
 
