@@ -9,6 +9,10 @@
   <meta name="apple-mobile-web-app-title" content="Wheee!ekend" />
   <meta name="application-name" content="Wheee!ekend" />
   <meta name="format-detection" content="telephone=no" />
+  <!-- Отправляем Firebase полный адрес страницы (а не только домен),
+       чтобы ограничение ключа можно было сузить до /wheeeekend/.
+       Безопасно: в адресах приложения нет токенов или личных данных. -->
+  <meta name="referrer" content="no-referrer-when-downgrade" />
   <meta name="theme-color" content="#F4F6F4" id="metaThemeColor" />
   <title>Wheee!ekend — Прогулки по Москве и Подмосковью</title>
   <meta name="description" content="Персональные прогулки по Москве и Подмосковью: отмечайте места, где уже были, и получайте маршруты с дворами, выставками и парками. Работает офлайн и помнит ваши отметки." />
