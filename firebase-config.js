@@ -8,9 +8,9 @@
    пользователя. Доступ к данным защищают правила Firestore. */
 
 window.WHEEE_FIREBASE = {
-  enabled: false,
-  apiKey: "",
-  projectId: "",
+  enabled: true,
+  apiKey: "AIzaSyB4vm1LSD_A70awfWRcJ9ugPxZS3Exo89c",
+  projectId: "wheeeekend",
 
   // Обычно менять не нужно. Поля оставлены, чтобы можно было
   // прогнать приложение на локальной заглушке Firebase.
