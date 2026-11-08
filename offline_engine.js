@@ -27,6 +27,32 @@
     return Math.max(4, Math.round((km / WALK_SPEED_KMH) * 60));
   }
 
+  function pluralRu(n, one, few, many) {
+    const abs = Math.abs(n) % 100;
+    const last = abs % 10;
+    if (abs > 10 && abs < 20) return many;
+    if (last > 1 && last < 5) return few;
+    if (last === 1) return one;
+    return many;
+  }
+
+  function formatHoursWord(n) {
+    return pluralRu(n, "час", "часа", "часов");
+  }
+
+  function formatDurationText(min) {
+    const value = Number(min);
+    if (!value || value < 1) return "";
+    const hours = value / 60;
+    const low = Math.floor(hours);
+    const high = Math.ceil(hours);
+    if (high - low === 0) return `Примерно ${low} ${formatHoursWord(low)}`;
+    if (hours - low < 0.25) return `Примерно ${low} ${formatHoursWord(low)}`;
+    if (high - hours < 0.25) return `Примерно ${high} ${formatHoursWord(high)}`;
+    if (low === 1 && hours < 1.75) return "Примерно 1,5 часа";
+    return `${low}–${high} ${formatHoursWord(high)}`;
+  }
+
   function evaluatePlaceCandidate(place, memory) {
     const visited = Boolean(memory.visitedPlaces && memory.visitedPlaces[place.id]);
     const record = memory.visitedPlaces && memory.visitedPlaces[place.id];
@@ -110,6 +136,10 @@
     if (isSuburb) {
       return Math.round(Math.min(60, Math.max(30, place.durationMin || 45)) * scale / 5) * 5;
     }
+    if (place.category === "museum") {
+      const base = Math.min(85, Math.max(50, Math.round((place.durationMin || 60) * 0.9)));
+      return Math.max(45, Math.round((base * scale) / 5) * 5);
+    }
     if (place.category === "courtyard") {
       const base = Math.min(25, Math.max(15, Math.round((place.durationMin || 30) * 0.55)));
       return Math.max(15, Math.round((base * scale) / 5) * 5);
@@ -127,20 +157,39 @@
     return clean.length > 32 ? clean.slice(0, 30) + "…" : clean;
   }
 
+  const CLUSTER_ROUTE_THEMES = {
+    basmanny: "палаты и арт-кластеры",
+    presnya_zotov: "конструктивизм и авангард",
+    zamoskvorechye: "усадьбы и набережные",
+    khamovniki_ostozhenka: "модерн и старые переулки",
+    shabolovka_donskoy: "авангард и овраги",
+    taganka_krutitsy: "кирпичная Москва и Яуза",
+    north_botanical: "дубрава и экотропа",
+    northwest_nature: "сосны и пруды",
+    suburbs_west: "дачи и сосновый лес",
+    suburbs_north_zvenigorod: "модерн и холмы Звенигорода"
+  };
+
   function generateRouteTitle(cluster, stops, focus) {
-    const first = stops[0];
-    const last = stops[stops.length - 1];
-    const exStop = stops.find((s) => s.activeExhibition);
-    if (cluster.areaType === "suburb") {
-      return `${cluster.shortName}: ${stops.map((s) => shortenName(s.name)).join(" → ")}`;
+    if (focus === "exhibition") {
+      const hasCourtyard = stops.some((s) => s.category === "courtyard");
+      return `${cluster.shortName}: ${hasCourtyard ? "выставки и старые дворы" : "выставки и музеи"}`;
     }
-    if (focus === "exhibition" && exStop) {
-      return `${cluster.shortName}: ${shortenName(exStop.name)} и маршрут рядом`;
+    if (focus === "nature") {
+      const hasCourtyard = stops.some((s) => s.category === "courtyard");
+      return `${cluster.shortName}: ${hasCourtyard ? "парки и усадьбы" : "парки и набережные"}`;
     }
-    if (first && last && first.id !== last.id) {
-      return `${cluster.shortName}: от ${shortenName(first.name)} до ${shortenName(last.name)}`;
+    if (focus === "courtyard") {
+      const hasNature = stops.some((s) => s.category === "nature");
+      return `${cluster.shortName}: ${hasNature ? "дворы и зелёные паузы" : "тайные дворы и архитектура"}`;
     }
-    return `Прогулка: ${cluster.shortName}`;
+
+    const signature = CLUSTER_ROUTE_THEMES[cluster.id];
+    if (signature) return `${cluster.shortName}: ${signature}`;
+
+    const vibe = String(cluster.vibe || "").split(",")[0].trim();
+    if (vibe) return `${cluster.shortName}: ${vibe.charAt(0).toLowerCase()}${vibe.slice(1)}`;
+    return `${cluster.shortName}: прогулка по городу`;
   }
 
   function enrichRouteStops(rawStops, cluster, focus, memory, mode) {
@@ -178,9 +227,7 @@
         ...place,
         durationMin,
         stepNumber: idx + 1,
-        statusBadge: memory.unvisitedChecked && memory.unvisitedChecked[place.id]
-          ? "Точно не был"
-          : ev.badge,
+        statusBadge: ev.badge,
         reasonType: ev.reasonType,
         activeExhibition: ev.activeExhibition,
         isWanted: Boolean(memory.likedPlaces && memory.likedPlaces[place.id]),
@@ -192,14 +239,22 @@
     const transferWalkMin =
       11 + stops.reduce((acc, s) => acc + (s.walkFromPrevMin || 0), 0);
     const totalDurationMin = transferWalkMin + totalExploreMin;
-    const hours = +(totalDurationMin / 60).toFixed(1);
     const exCount = stops.filter((s) => s.activeExhibition).length;
+    const museumCount = stops.filter((s) => s.category === "museum").length;
     const courtyardCount = stops.filter((s) => s.category === "courtyard").length;
     const natureCount = stops.filter((s) => s.category === "nature").length;
+    const palaceCount = stops.filter((s) => /палат/i.test(s.name || "")).length;
+
     const highlights = [];
-    if (exCount > 0) highlights.push(`${exCount} выставк${exCount === 1 ? "а" : "и"}`);
-    if (courtyardCount > 0) highlights.push("дворы и палаты");
-    if (natureCount > 0) highlights.push("парк / природа");
+    if (exCount > 0) {
+      highlights.push(`${exCount} ${pluralRu(exCount, "выставка", "выставки", "выставок")}`);
+    }
+    if (museumCount > 0) {
+      highlights.push(`${museumCount} ${pluralRu(museumCount, "музей", "музея", "музеев")}`);
+    }
+    if (courtyardCount > 0) highlights.push("Дворы");
+    if (palaceCount > 0) highlights.push("Палаты");
+    if (natureCount > 0) highlights.push("Природа");
 
     return {
       id: `route_${cluster.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -209,7 +264,7 @@
       areaType: cluster.areaType,
       title: generateRouteTitle(cluster, stops, focus),
       subtitle: cluster.vibe,
-      tags: highlights,
+      tags: highlights.slice(0, 4),
       stops,
       metrics: {
         stopCount: stops.length,
@@ -217,7 +272,8 @@
         totalWalkMin,
         totalExploreMin,
         totalDurationMin,
-        totalHoursText: `${hours} ч`
+        totalDurationText: formatDurationText(totalDurationMin),
+        totalHoursText: formatDurationText(totalDurationMin)
       },
       mapLinks: buildMapLinks(stops)
     };
@@ -253,10 +309,11 @@
         if (memory.likedPlaces && memory.likedPlaces[p.id]) score += 18;
         if (ev.reasonType === "new_place") score += 6;
         if (focus === "courtyard" && p.category === "courtyard") score += 16;
-        if (focus === "exhibition" && (p.category === "exhibition" || ev.activeExhibition)) score += 17;
+        if (focus === "exhibition" && (p.category === "exhibition" || p.category === "museum" || ev.activeExhibition)) score += 17;
         if (focus === "nature" && p.category === "nature") score += 16;
         if (focus === "mix") {
           if (ev.activeExhibition) score += 7;
+          if (p.category === "museum") score += 7;
           if (p.category === "courtyard") score += 5;
           if (p.category === "nature") score += 5;
         }
@@ -276,10 +333,12 @@
         const byCat = {
           courtyard: pool.filter((x) => x.place.category === "courtyard"),
           exhibition: pool.filter((x) => x.place.category === "exhibition"),
+          museum: pool.filter((x) => x.place.category === "museum"),
           nature: pool.filter((x) => x.place.category === "nature")
         };
         if (byCat.courtyard[0]) picked.push(byCat.courtyard[0]);
-        if (byCat.exhibition[0]) picked.push(byCat.exhibition[0]);
+        if (byCat.museum[0] && picked.length < targetCount) picked.push(byCat.museum[0]);
+        if (byCat.exhibition[0] && picked.length < targetCount) picked.push(byCat.exhibition[0]);
         if (byCat.nature[0] && picked.length < targetCount) picked.push(byCat.nature[0]);
         for (const item of pool) {
           if (picked.length >= targetCount) break;

@@ -1980,3 +1980,1056 @@ html.is-standalone .offline-banner {
   line-height: 1.5;
   color: var(--text-muted);
 }
+
+/* ==================== v17: СВЕЖИЙ UX/UI ==================== */
+
+/* --- Свайпер: полноэкранные карточки в духе Tinder --- */
+.swipe-screen {
+  max-width: 560px;
+}
+
+.swipe-screen-inner {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0 0;
+  box-shadow: none;
+}
+
+.swipe-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.swipe-progress-track {
+  flex: 1;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+
+.swipe-progress-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 99px;
+  background: var(--accent-orange);
+  transition: width 0.25s ease;
+}
+
+.swipe-progress-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tinder-stage {
+  height: min(66dvh, 620px);
+  min-height: 420px;
+  margin-bottom: 14px;
+}
+
+.tinder-card {
+  display: block;
+  position: relative;
+  height: 100%;
+  border: none;
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow: var(--shadow-elevated);
+  background: var(--bg-subtle);
+}
+
+.tinder-photo-wrap {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.tinder-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tinder-photo-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  background: linear-gradient(160deg, var(--highlight-green), var(--accent-orange));
+}
+
+.tinder-photo-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 12, 14, 0.18) 0%,
+    rgba(10, 12, 14, 0) 32%,
+    rgba(10, 12, 14, 0.72) 100%
+  );
+  pointer-events: none;
+}
+
+.tinder-body {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 18px 18px 16px;
+  background: transparent;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tinder-title {
+  color: #fff;
+  font-size: 24px;
+  line-height: 1.18;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.tinder-desc {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 14.5px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tinder-tip {
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.tinder-tip span {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2px;
+}
+
+.tinder-tip p {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fff;
+}
+
+.tinder-meta-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.24);
+  padding-top: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+}
+
+.tinder-more-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tinder-card-empty {
+  background: var(--bg-surface);
+}
+
+.tinder-card-empty .tinder-body {
+  position: static;
+  color: var(--text-main);
+  padding: 28px;
+}
+
+.tinder-card-empty .tinder-title,
+.tinder-card-empty h3 {
+  color: var(--text-main);
+}
+
+.tinder-card-empty .tinder-desc,
+.tinder-card-empty p {
+  color: var(--text-secondary);
+}
+
+.photo-badge-count {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* --- Быстрый ввод списком --- */
+.quick-tell-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.quick-tell-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.quick-tell-example {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.quick-tell-form {
+  border: 1.5px dashed var(--border-strong);
+  background: var(--bg-surface);
+  border-radius: 14px;
+  padding: 6px 6px 6px 14px;
+}
+
+.quick-tell-form input {
+  font-size: 16px;
+}
+
+.quick-tell-form button {
+  background: var(--accent-orange);
+  color: #fff;
+  border-radius: 10px;
+}
+
+/* --- Большая отдельная CTA --- */
+.swipe-bottom-cta {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-line);
+}
+
+.primary-cta-hero {
+  height: 62px;
+  font-size: 17px;
+  border-radius: 16px;
+  letter-spacing: -0.01em;
+  box-shadow: 0 10px 26px rgba(255, 92, 40, 0.28);
+}
+
+/* --- Чекбокс знакомых музеев --- */
+.new-ex-checkbox {
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.new-ex-checkbox input {
+  width: 22px;
+  height: 22px;
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+/* --- Маршрут на всю ширину, без внешней рамки --- */
+.selected-route-view {
+  margin-left: -18px;
+  margin-right: -18px;
+}
+
+.route-detail-sheet {
+  background: var(--bg-page);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 20px;
+  overflow: visible;
+}
+
+.rds-header {
+  background: transparent;
+  border-bottom: none;
+  padding: 6px 18px 16px;
+}
+
+.rds-route-counter {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--highlight-green);
+  margin-bottom: 8px;
+}
+
+.rds-title {
+  font-size: 30px;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  margin-bottom: 14px;
+}
+
+.rds-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rds-tag {
+  background: var(--highlight-green-soft);
+  color: var(--highlight-green);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 9px;
+}
+
+.rds-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rds-meta-dot {
+  color: var(--text-muted);
+}
+
+.rds-divider {
+  height: 1px;
+  background: var(--border-line);
+  margin: 0 18px;
+}
+
+/* --- Карта --- */
+.yandex-map-section {
+  background: transparent;
+  border-bottom: none;
+  padding: 18px 18px 4px;
+}
+
+.ymap-header {
+  margin-bottom: 2px;
+}
+
+.ymap-kicker {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ymap-title {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin: 2px 0 1px;
+}
+
+.ymap-sub {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.ymap-mode-switch {
+  display: flex;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.ymap-mode-btn {
+  border-radius: 9px;
+  padding: 7px 12px;
+}
+
+.yandex-map-canvas,
+.yandex-widget-iframe {
+  border-radius: 16px;
+  overflow: hidden;
+  height: 300px;
+}
+
+/* --- Заголовок нитки шагов --- */
+.rds-steps-heading {
+  padding: 20px 18px 6px;
+}
+
+.rds-steps-heading h3 {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+/* --- Шаги: компактно, без вложенных карточек --- */
+.rds-stops-list {
+  padding: 4px 18px 20px;
+}
+
+.timeline-step-row {
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+}
+
+.timeline-node-badge {
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1.5px solid var(--accent-orange);
+  color: var(--accent-orange);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: none;
+}
+
+.timeline-rail-line {
+  width: 2px;
+  background: var(--highlight-green);
+  opacity: 0.28;
+  margin: 4px 0;
+  min-height: 18px;
+}
+
+.walk-connector-row {
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  margin: 0 0 6px;
+}
+
+.walk-connector-line {
+  width: 2px;
+  height: 22px;
+  opacity: 0.28;
+}
+
+.walk-leg-pill {
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.stop-item-body {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.stop-thumb-wrap {
+  height: 96px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.stop-thumb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--highlight-green);
+}
+
+.stop-step-kicker {
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  margin-bottom: 2px;
+}
+
+.stop-item-title {
+  font-size: 18px;
+  line-height: 1.22;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.stop-item-desc {
+  font-size: 14.5px;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.stop-tip-line {
+  background: transparent;
+  padding: 0 0 0 10px;
+  border-left: 2px solid var(--border-line);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.stop-ex-callout {
+  border: none;
+  background: var(--accent-orange-soft);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin-bottom: 8px;
+}
+
+.stop-ex-callout strong {
+  font-size: 14px;
+}
+
+.stop-ex-callout span {
+  font-size: 12.5px;
+}
+
+.stop-bottom-row {
+  border-top: none;
+  padding-top: 2px;
+  margin-top: 2px;
+}
+
+.stop-meta-info {
+  font-size: 12.5px;
+}
+
+.btn-replace-stop {
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  text-decoration: underline;
+}
+
+.btn-replace-stop:hover {
+  color: var(--accent-orange);
+}
+
+/* --- Кнопки внизу маршрута --- */
+.rds-actions-footer {
+  background: transparent;
+  border-top: 1px solid var(--border-line);
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.btn-go-yandex {
+  min-width: 0;
+  width: 100%;
+  height: 56px;
+  background: var(--highlight-green);
+  color: var(--highlight-green-text);
+  border-radius: 15px;
+  font-size: 16px;
+  box-shadow: 0 8px 22px rgba(33, 140, 94, 0.22);
+}
+
+.btn-complete-walk {
+  min-width: 0;
+  width: 100%;
+  height: 52px;
+  background: transparent;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 15px;
+  font-size: 15px;
+}
+
+/* --- Страница памяти --- */
+.memory-drawer-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 0 0;
+}
+
+.drawer-header-row {
+  margin-bottom: 4px;
+}
+
+.drawer-title {
+  font-size: 27px;
+  letter-spacing: -0.03em;
+}
+
+.drawer-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.drawer-subtitle strong {
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.drawer-hint {
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  margin: 10px 0 16px;
+}
+
+.visited-chips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visited-place-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  border-radius: 16px;
+  padding: 10px;
+}
+
+.visited-place-thumb {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.visited-place-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.visited-place-text {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.visited-place-text strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.visited-place-text span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.visited-remove-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-page);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.visited-empty {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-line);
+  border-radius: 16px;
+  padding: 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.memory-actions-footer {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-line);
+}
+
+.memory-teach-btn {
+  height: 58px;
+  font-size: 16.5px;
+  border-radius: 16px;
+  box-shadow: 0 10px 26px rgba(255, 92, 40, 0.28);
+}
+
+.memory-back-btn {
+  height: 52px;
+  border-radius: 16px;
+  background: transparent;
+  font-size: 15px;
+}
+
+/* --- Крупные крестики --- */
+.close-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.close-btn:hover {
+  background: var(--border-line);
+}
+
+/* --- Источники --- */
+.sources-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sources-list li {
+  background: var(--bg-page);
+  border: 1px solid var(--border-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sources-list strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sources-list span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.sources-note {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.modal-box {
+  max-height: 88dvh;
+  overflow-y: auto;
+}
+
+.modal-overlay {
+  overflow-y: auto;
+}
+
+/* --- Карточка места --- */
+.place-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  background: var(--bg-page);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.place-detail-sheet {
+  min-height: 100dvh;
+  max-width: 720px;
+  margin: 0 auto;
+  position: relative;
+  background: var(--bg-page);
+}
+
+.place-detail-close {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: 14px;
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(18, 21, 25, 0.58);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.place-gallery {
+  position: relative;
+  background: var(--bg-subtle);
+}
+
+.place-gallery-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.place-gallery-track::-webkit-scrollbar {
+  display: none;
+}
+
+.place-gallery-slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  height: min(54dvh, 460px);
+}
+
+.place-gallery-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.place-gallery-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.place-gallery-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  border: none;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.place-gallery-dot.active {
+  width: 20px;
+  background: #fff;
+}
+
+.place-gallery-empty {
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.place-detail-content {
+  padding: 20px 18px 48px;
+}
+
+.place-detail-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.16;
+  margin: 8px 0 8px;
+}
+
+.place-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.place-detail-desc {
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin-bottom: 18px;
+}
+
+.place-detail-section {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.place-detail-section-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-orange);
+  margin-bottom: 4px;
+}
+
+.place-detail-section p {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.place-detail-exhibition h3 {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.place-detail-ex-note {
+  margin-top: 6px;
+}
+
+/* --- Общая освежённая иерархия --- */
+.builder-title {
+  font-size: 28px;
+}
+
+.carousel-section-title {
+  font-size: 23px;
+}
+
+.primary-cta-wide {
+  border-radius: 14px;
+}
+
+.outline-btn {
+  border-radius: 12px;
+}
+
+.icon-circle-btn {
+  width: 44px;
+  height: 44px;
+}
+
+@media (max-width: 640px) {
+  .tinder-stage {
+    height: min(64dvh, 560px);
+    min-height: 380px;
+  }
+
+  .rds-title {
+    font-size: 26px;
+  }
+
+  .stop-item-body {
+    grid-template-columns: 86px 1fr;
+    gap: 10px;
+  }
+
+  .stop-thumb-wrap {
+    height: 86px;
+  }
+
+  .timeline-step-row,
+  .walk-connector-row {
+    grid-template-columns: 24px 1fr;
+    gap: 8px;
+  }
+
+  .timeline-node-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+}
+
+/* --- Узкие телефоны: шапка без горизонтального переполнения --- */
+@media (max-width: 480px) {
+  .app-header {
+    gap: 8px;
+  }
+
+  .brand-block {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .brand-app-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+  }
+
+  .wm-hybrid {
+    font-size: 16px;
+  }
+
+  .wm-hybrid .bang-hybrid {
+    width: 19px;
+    height: 25px;
+    font-size: 14px;
+    margin: 0 2.5px;
+  }
+
+  .header-actions {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .icon-circle-btn {
+    width: 38px;
+    height: 38px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 380px) {
+  .wm-hybrid {
+    font-size: 14px;
+  }
+
+  .brand-block {
+    gap: 8px;
+  }
+
+  .icon-circle-btn {
+    width: 36px;
+    height: 36px;
+  }
+}

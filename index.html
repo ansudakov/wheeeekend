@@ -115,6 +115,13 @@
           Отмечай знакомые места, чтобы мы исключили их из прогулок и оставили только новые точки.
         </p>
 
+        <div class="swipe-progress" id="swipeProgress">
+          <div class="swipe-progress-track">
+            <span class="swipe-progress-fill" id="swipeProgressFill"></span>
+          </div>
+          <span class="swipe-progress-label" id="swipeProgressLabel">1 из 10</span>
+        </div>
+
         <!-- Стек карточек для свайпа -->
         <div class="tinder-stage" id="tinderStage">
           <!-- Карточка рендерится из JS -->
@@ -133,11 +140,15 @@
 
         <!-- Быстрое текстовое дообучение прямо под свайпером -->
         <div class="swipe-text-teach-box">
+          <div class="quick-tell-head">
+            <span class="quick-tell-title">Или напишите списком</span>
+            <span class="quick-tell-example">Например: ГЭС-2, парк Горького, Музей музыки</span>
+          </div>
           <form id="quickTellForm" class="quick-tell-form">
             <input
               type="text"
               id="quickTellInput"
-              placeholder="Или напиши списком: ГЭС-2, Винзавод, Нескучный сад..."
+              placeholder="ГЭС-2, парк Горького, Музей музыки"
               autocomplete="off"
             />
             <button type="submit">Добавить</button>
@@ -146,8 +157,8 @@
         </div>
 
         <div class="swipe-bottom-cta">
-          <button type="button" class="primary-cta-wide" id="goMainRoutesBigBtn">
-            Показать 3 персональных маршрута
+          <button type="button" class="primary-cta-wide primary-cta-hero" id="goMainRoutesBigBtn">
+            Показать три персональных маршрута
           </button>
         </div>
       </div>
@@ -195,15 +206,15 @@
             <label class="builder-label">Время на прогулку</label>
             <div class="duration-tabs" id="durationPills">
               <button type="button" class="dur-tab" data-duration="short">
-                <strong>1.5–2 часа</strong>
+                <strong>1,5 часа</strong>
                 <span>3 шага</span>
               </button>
               <button type="button" class="dur-tab active" data-duration="medium">
-                <strong>2.5–3.5 часа</strong>
+                <strong>2,5 часа</strong>
                 <span>4 шага</span>
               </button>
               <button type="button" class="dur-tab" data-duration="long">
-                <strong>4–5 часов</strong>
+                <strong>4 часа</strong>
                 <span>5 шагов</span>
               </button>
             </div>
@@ -251,23 +262,25 @@
         <div class="drawer-header-row">
           <div>
             <span class="eyebrow-tag">Раздел памяти</span>
-            <h2 class="drawer-title">Отмечено «Уже был»: <span id="drawerVisitedCount">0</span> из <span id="drawerTotalCount">0</span></h2>
-          </div>
-          <div class="drawer-btn-group">
-            <button type="button" class="outline-btn" id="openSwipeFromBottomBtn">
-              Дообучить свайпами
-            </button>
-            <button type="button" class="outline-btn" id="backToRoutesFromMemoryBtn">
-              ← Назад к маршрутам
-            </button>
+            <h2 class="drawer-title">Мои посещённые места</h2>
+            <p class="drawer-subtitle">Отмечено «Уже был»: <strong id="drawerVisitedCount">0</strong> из <span id="drawerTotalCount">0</span></p>
           </div>
         </div>
 
-        <p style="font-size:13.5px; color:var(--text-secondary); margin-bottom:14px;">
-          Все места ниже исключены из генерации обычных прогулок. Нажми на крестик рядом с местом, если хочешь снова включить его в маршруты.
+        <p class="drawer-hint">
+          Эти места исключены из обычных прогулок. Нажми на крестик рядом с местом, если хочешь снова включить его в маршруты.
         </p>
 
         <div id="visitedChipsContainer" class="visited-chips-list"></div>
+
+        <div class="memory-actions-footer">
+          <button type="button" class="primary-cta-wide memory-teach-btn" id="openSwipeFromBottomBtn">
+            Дообучить свайпами
+          </button>
+          <button type="button" class="outline-btn memory-back-btn" id="backToRoutesFromMemoryBtn">
+            Назад к маршруту
+          </button>
+        </div>
       </div>
     </section>
 
@@ -363,11 +376,27 @@
           <span>Погода сейчас:</span>
           <strong id="weatherChip">Москва</strong>
         </div>
+
         <p class="modal-p" id="sourcesSubtitle">
-          Маршруты строятся на базе портала «Узнай Москву» (um.mos.ru), афиши KudaGo, актуальных выставок московских музеев и пешей маршрутизации Яндекс.Карт.
+          Приложение собирает места, выставки и маршруты из открытых городских источников. Вот полный список:
         </p>
+
+        <ul class="sources-list">
+          <li><strong>«Узнай Москву»</strong><span>um.mos.ru — описания мест, дворов, усадеб и палат</span></li>
+          <li><strong>KudaGo</strong><span>kudago.com — афиша выставок, событий и музейных программ</span></li>
+          <li><strong>Официальные сайты музеев</strong><span>актуальные выставки, билеты и часы работы</span></li>
+          <li><strong>Wikimedia Commons</strong><span>фотографии мест и галереи</span></li>
+          <li><strong>Яндекс.Карты</strong><span>пешая маршрутизация и карта прогулки</span></li>
+          <li><strong>mos.ru</strong><span>городские парки, музеи и культурные площадки</span></li>
+          <li><strong>OpenStreetMap</strong><span>координаты и ориентиры на местности</span></li>
+        </ul>
+
+        <p class="sources-note">
+          Названия источников намеренно не показываются на карточках и в шагах маршрута — только здесь.
+        </p>
+
         <button type="button" class="outline-btn" id="syncRussianSourcesBtn" style="width:100%; padding:12px;">
-          Обновить базу (Узнай Москву + KudaGo)
+          Обновить базу мест и афиш
         </button>
       </div>
     </div>
@@ -496,6 +525,16 @@
       <div class="install-note" id="installOfflineNote">
         После установки приложение открывается без адресной строки, помнит ваши отметки
         и сохраняет маршруты на телефоне. Открывайте его с иконки на домашнем экране.
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== КАРТОЧКА МЕСТА (ОТКРЫВАЕТСЯ ИЗ СВАЙПОВ И МАРШРУТА) ==================== -->
+  <div class="place-detail-overlay hidden" id="placeDetailModal" role="dialog" aria-modal="true" aria-label="Карточка места">
+    <div class="place-detail-sheet">
+      <button type="button" class="place-detail-close" id="closePlaceDetailBtn" aria-label="Закрыть карточку места">✕</button>
+      <div class="place-detail-scroll" id="placeDetailScroll">
+        <!-- Содержимое рендерится из JS -->
       </div>
     </div>
   </div>

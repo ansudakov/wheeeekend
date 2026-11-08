@@ -843,6 +843,23 @@ function bindUIEvents() {
   });
   document.getElementById("accountSignOutBtn")?.addEventListener("click", handleSignOut);
 
+  // Карточка места: открытие по тапу на фото/название, закрытие крестиком или фоном
+  document.getElementById("tinderStage")?.addEventListener("click", (e) => {
+    const trigger = e.target.closest("[data-open-place]");
+    if (!trigger) return;
+    const card = e.target.closest(".tinder-card");
+    if (card && card.dataset.dragged === "1") return;
+    openPlaceDetail(trigger.dataset.openPlace);
+  });
+
+  document.getElementById("closePlaceDetailBtn")?.addEventListener("click", closePlaceDetail);
+  document.getElementById("placeDetailModal")?.addEventListener("click", (e) => {
+    if (e.target.id === "placeDetailModal") closePlaceDetail();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closePlaceDetail();
+  });
+
   // Переход между свайпером и главным экраном
   document.getElementById("openSwipeOverlayBtn")?.addEventListener("click", () => {
     const screen = document.getElementById("onboardingSwipeScreen");
@@ -1061,6 +1078,7 @@ function renderHeaderBar() {
 
 // ==================== ПЕРЕКЛЮЧЕНИЕ РАЗДЕЛОВ (СВАЙПЕР / ГЛАВНЫЙ МАРШРУТ / БАЗА МЕСТ) ====================
 function openSwipeScreen() {
+  appState.swipesInSession = 0;
   document.getElementById("onboardingSwipeScreen")?.classList.remove("hidden");
   document.getElementById("mainWalkScreen")?.classList.add("hidden");
   document.getElementById("memorySectionScreen")?.classList.add("hidden");
@@ -1099,16 +1117,67 @@ async function closeSwipeScreen(markDone = true) {
   }
 }
 
+const SWIPE_SESSION_LIMIT = 10;
+
+const CATEGORY_LABELS = {
+  courtyard: "Дворы и архитектура",
+  exhibition: "Выставки и искусство",
+  nature: "Парки и природа",
+  museum: "Музей"
+};
+
+function pluralRu(n, one, few, many) {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (last > 1 && last < 5) return few;
+  if (last === 1) return one;
+  return many;
+}
+
+function formatSteps(n) {
+  return `${n} ${pluralRu(n, "шаг", "шага", "шагов")}`;
+}
+
+function formatHoursWord(n) {
+  return pluralRu(n, "час", "часа", "часов");
+}
+
+function formatDurationText(min) {
+  const value = Number(min);
+  if (!value || value < 1) return "";
+  const hours = value / 60;
+  const low = Math.floor(hours);
+  const high = Math.ceil(hours);
+  if (high - low === 0) return `Примерно ${low} ${formatHoursWord(low)}`;
+  if (hours - low < 0.25) return `Примерно ${low} ${formatHoursWord(low)}`;
+  if (high - hours < 0.25) return `Примерно ${high} ${formatHoursWord(high)}`;
+  if (low === 1 && hours < 1.75) return "Примерно 1,5 часа";
+  return `${low}–${high} ${formatHoursWord(high)}`;
+}
+
 function getSwipeDeck() {
   const unmarked = appState.places.filter(
     (p) => !appState.memory.visitedPlaces[p.id] && !appState.memory.unvisitedChecked[p.id]
   );
   const pool = unmarked.length > 0 ? unmarked : appState.places;
-  return [...pool].sort((a, b) => {
+  const sorted = [...pool].sort((a, b) => {
     const imgBonusA = a.imageUrl ? 2 : 0;
     const imgBonusB = b.imageUrl ? 2 : 0;
     return (b.quizPriority || 6) + imgBonusB - ((a.quizPriority || 6) + imgBonusA);
   });
+
+  // Сначала показываем по одному яркому представителю каждой категории,
+  // чтобы музеи и выставки не терялись за сотней дворов и парков.
+  const picked = [];
+  for (const cat of ["museum", "exhibition", "courtyard", "nature"]) {
+    const item = sorted.find((p) => p.category === cat && !picked.includes(p));
+    if (item) picked.push(item);
+  }
+  for (const place of sorted) {
+    if (!picked.includes(place)) picked.push(place);
+  }
+  return picked;
 }
 
 function renderTinderCard() {
@@ -1116,46 +1185,75 @@ function renderTinderCard() {
   if (!stage) return;
 
   const deck = getSwipeDeck();
+  const progressLabel = document.getElementById("swipeProgressLabel");
+  const progressFill = document.getElementById("swipeProgressFill");
+  const shown = Math.min(appState.swipesInSession + 1, SWIPE_SESSION_LIMIT);
+  if (progressLabel) progressLabel.textContent = `${shown} из ${SWIPE_SESSION_LIMIT}`;
+  if (progressFill) {
+    progressFill.style.width = `${(appState.swipesInSession / SWIPE_SESSION_LIMIT) * 100}%`;
+  }
+
   if (deck.length === 0) {
-    stage.innerHTML = `<div class="tinder-card"><div class="tinder-body"><h3>Все места размечены</h3></div></div>`;
+    stage.innerHTML = `<div class="tinder-card tinder-card-empty"><div class="tinder-body"><h3>Все места размечены</h3><p>Можно переходить к маршрутам.</p></div></div>`;
     return;
   }
 
   if (appState.swipeCursor >= deck.length) appState.swipeCursor = 0;
   const place = deck[appState.swipeCursor];
   const cluster = appState.clusters.find((c) => c.id === place.clusterId);
+  const images = (place.images && place.images.length ? place.images : [place.imageUrl]).filter(Boolean);
 
-  const photoHtml = place.imageUrl
-    ? `<img src="${escapeHtml(place.imageUrl)}" alt="${escapeHtml(place.name)}" class="tinder-photo" draggable="false" />`
-    : `<div class="tinder-photo" style="display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:800;font-size:18px;padding:20px;text-align:center;">${escapeHtml(place.name)}</div>`;
+  const photoHtml = images[0]
+    ? `<img src="${escapeHtml(images[0])}" alt="${escapeHtml(place.name)}" class="tinder-photo" draggable="false" loading="eager" />`
+    : `<div class="tinder-photo tinder-photo-fallback">${escapeHtml(place.name)}</div>`;
+
+  const photoCount =
+    images.length > 1 ? `<span class="photo-badge photo-badge-count">${images.length} фото</span>` : "";
+
+  const tip = place.secretTip
+    ? `<div class="tinder-tip"><span>Что посмотреть</span><p>${escapeHtml(place.secretTip)}</p></div>`
+    : "";
 
   stage.innerHTML = `
     <div class="tinder-card" id="activeTinderCard" data-place-id="${place.id}">
       <div class="swipe-stamp stamp-visited" id="stampRight">Уже был</div>
       <div class="swipe-stamp stamp-unvisited" id="stampLeft">Не был здесь</div>
 
-      <div class="tinder-photo-wrap">
+      <div class="tinder-photo-wrap" data-open-place="${place.id}">
         ${photoHtml}
+        <div class="tinder-photo-shade"></div>
         <div class="tinder-photo-badges">
-          <span class="photo-badge">${escapeHtml(cluster ? cluster.shortName : "Москва")} • ${escapeHtml(place.subcategory || "Локация")}</span>
+          <span class="photo-badge">${escapeHtml(cluster ? cluster.shortName : "Москва")} • ${escapeHtml(place.subcategory || CATEGORY_LABELS[place.category] || "Локация")}</span>
+          ${photoCount}
         </div>
       </div>
 
       <div class="tinder-body">
-        <div>
-          <h3 class="tinder-title">${escapeHtml(place.name)}</h3>
+        <div class="tinder-body-main">
+          <h3 class="tinder-title" data-open-place="${place.id}">${escapeHtml(place.name)}</h3>
           <p class="tinder-desc">${escapeHtml(place.description)}</p>
+          ${tip}
         </div>
 
         <div class="tinder-meta-footer">
-          <span>м. ${escapeHtml(place.metro)} • ~${place.durationMin || 45} мин</span>
-          <span>${escapeHtml(place.sourceName || "Узнай Москву")}</span>
+          <span>м. ${escapeHtml(place.metro || "—")} • ~${place.durationMin || 45} мин</span>
+          <button type="button" class="tinder-more-btn" data-open-place="${place.id}">Подробнее →</button>
         </div>
       </div>
     </div>
   `;
 
-  attachTouchDragToCard(document.getElementById("activeTinderCard"));
+  const cardEl = document.getElementById("activeTinderCard");
+  attachTouchDragToCard(cardEl);
+
+  // Заранее подгружаем следующие кадры, чтобы при свайпах не было пустых карточек.
+  deck.slice(appState.swipeCursor + 1, appState.swipeCursor + 4).forEach((next) => {
+    const src = (next.images && next.images[0]) || next.imageUrl;
+    if (src) {
+      const img = new Image();
+      img.src = src;
+    }
+  });
 }
 
 function attachTouchDragToCard(cardEl) {
@@ -1171,6 +1269,7 @@ function attachTouchDragToCard(cardEl) {
     isDragging = true;
     startX = clientX;
     currentX = clientX;
+    cardEl.dataset.dragged = "0";
     cardEl.style.transition = "none";
   };
 
@@ -1178,6 +1277,7 @@ function attachTouchDragToCard(cardEl) {
     if (!isDragging) return;
     currentX = clientX;
     const dx = currentX - startX;
+    if (Math.abs(dx) > 10) cardEl.dataset.dragged = "1";
     const rotate = dx * 0.05;
     cardEl.style.transform = `translateX(${dx}px) rotate(${rotate}deg)`;
 
@@ -1260,12 +1360,129 @@ async function triggerCardSwipe(direction) {
     );
   }
 
+  const reachedLimit = appState.swipesInSession >= SWIPE_SESSION_LIMIT;
+
   setTimeout(() => {
     renderHeaderBar();
-    renderTinderCard();
-    fetchFreshRoutes();
     renderMemoryDrawer();
-  }, 190);
+    if (reachedLimit) {
+      showToast("10 карточек достаточно — показываем маршруты");
+      closeSwipeScreen(true);
+      fetchFreshRoutes();
+    } else {
+      renderTinderCard();
+      fetchFreshRoutes();
+    }
+  }, 260);
+}
+
+// ==================== КАРТОЧКА МЕСТА (ГАЛЕРЕЯ + ОПИСАНИЕ) ====================
+let placeDetailScrollLock = "";
+
+function openPlaceDetail(placeId) {
+  const place = appState.places.find((p) => p.id === placeId);
+  const modal = document.getElementById("placeDetailModal");
+  const scrollEl = document.getElementById("placeDetailScroll");
+  if (!place || !modal || !scrollEl) return;
+
+  const cluster = appState.clusters.find((c) => c.id === place.clusterId);
+  const images = (place.images && place.images.length ? place.images : [place.imageUrl]).filter(Boolean);
+  const exhibition = (place.exhibitions || [])[0];
+
+  const gallery = images.length
+    ? `
+      <div class="place-gallery" id="placeGallery">
+        <div class="place-gallery-track">
+          ${images
+            .map(
+              (src, i) => `
+                <div class="place-gallery-slide">
+                  <img src="${escapeHtml(src)}" alt="${escapeHtml(place.name)} — фото ${i + 1}" loading="${i === 0 ? "eager" : "lazy"}" />
+                </div>`
+            )
+            .join("")}
+        </div>
+        ${
+          images.length > 1
+            ? `<div class="place-gallery-dots" id="placeGalleryDots">
+                 ${images
+                   .map((_, i) => `<button type="button" class="place-gallery-dot ${i === 0 ? "active" : ""}" data-gallery-idx="${i}" aria-label="Фото ${i + 1}"></button>`)
+                   .join("")}
+               </div>`
+            : ""
+        }
+      </div>`
+    : `<div class="place-gallery place-gallery-empty">${escapeHtml(place.name)}</div>`;
+
+  const exHtml = exhibition
+    ? `<div class="place-detail-section place-detail-exhibition">
+         <span class="place-detail-section-kicker">Сейчас идёт</span>
+         <h3>${escapeHtml(exhibition.title)}</h3>
+         <p>${escapeHtml(exhibition.until || "")}${exhibition.price ? ` • ${escapeHtml(exhibition.price)}` : ""}</p>
+         ${exhibition.highlight ? `<p class="place-detail-ex-note">${escapeHtml(exhibition.highlight)}</p>` : ""}
+       </div>`
+    : "";
+
+  scrollEl.innerHTML = `
+    ${gallery}
+    <div class="place-detail-content">
+      <span class="eyebrow-tag">${escapeHtml(cluster ? cluster.shortName : "Москва")} • ${escapeHtml(CATEGORY_LABELS[place.category] || place.subcategory || "Место")}</span>
+      <h2 class="place-detail-title">${escapeHtml(place.name)}</h2>
+      <div class="place-detail-meta">
+        <span>м. ${escapeHtml(place.metro || "—")}</span>
+        <span>~${place.durationMin || 45} мин</span>
+        ${place.address ? `<span>${escapeHtml(place.address)}</span>` : ""}
+      </div>
+
+      <p class="place-detail-desc">${escapeHtml(place.description)}</p>
+
+      ${
+        place.secretTip
+          ? `<div class="place-detail-section">
+               <span class="place-detail-section-kicker">Чем интересно</span>
+               <p>${escapeHtml(place.secretTip)}</p>
+             </div>`
+          : ""
+      }
+
+      ${exHtml}
+    </div>
+  `;
+
+  if (modal.classList.contains("hidden")) {
+    placeDetailScrollLock = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+  modal.classList.remove("hidden");
+  scrollEl.scrollTop = 0;
+
+  const galleryEl = document.getElementById("placeGallery");
+  const dotsEl = document.getElementById("placeGalleryDots");
+  if (galleryEl && dotsEl) {
+    const track = galleryEl.querySelector(".place-gallery-track");
+    const slides = Array.from(galleryEl.querySelectorAll(".place-gallery-slide"));
+    const updateDots = () => {
+      const width = track.clientWidth || 1;
+      const idx = Math.round(track.scrollLeft / width);
+      dotsEl.querySelectorAll(".place-gallery-dot").forEach((dot, i) => {
+        dot.classList.toggle("active", i === idx);
+      });
+    };
+    track.addEventListener("scroll", updateDots, { passive: true });
+    dotsEl.querySelectorAll("[data-gallery-idx]").forEach((dot) => {
+      dot.addEventListener("click", () => {
+        const idx = Number(dot.dataset.galleryIdx);
+        if (slides[idx]) slides[idx].scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+      });
+    });
+  }
+}
+
+function closePlaceDetail() {
+  const modal = document.getElementById("placeDetailModal");
+  if (!modal || modal.classList.contains("hidden")) return;
+  modal.classList.add("hidden");
+  document.body.style.overflow = placeDetailScrollLock || "";
 }
 
 // ==================== ГЛАВНЫЙ ЭКРАН: КАРУСЕЛЬ 3 МАРШРУТОВ + ЕДИНЫЙ МАРШРУТ ====================
@@ -1402,11 +1619,11 @@ function renderRoutesView(resetCarouselScroll = false) {
           </div>
           <span class="rtc-title">${escapeHtml(r.title)}</span>
           <div class="rtc-metrics-row">
-            <span class="rtc-metric-chip">${r.metrics.totalHoursText}</span>
+            <span class="rtc-metric-chip">${formatDurationText(r.metrics.totalDurationMin)}</span>
             <span class="rtc-metric-sep">·</span>
             <span class="rtc-metric-chip">${r.metrics.totalWalkKm} км</span>
             <span class="rtc-metric-sep">·</span>
-            <span class="rtc-metric-chip">${r.metrics.stopCount} места</span>
+            <span class="rtc-metric-chip">${formatSteps(r.metrics.stopCount)}</span>
           </div>
         </button>
       `;
@@ -1442,36 +1659,27 @@ function renderActiveRouteSheetOnly() {
               <div class="walk-connector-rail">
                 <div class="walk-connector-line"></div>
               </div>
-              <div class="walk-leg-pill">
-                <span>↓ Переход к шагу ${stop.stepNumber}: ~${stop.walkFromPrevMin} мин пешком (${stop.walkFromPrevKm} км)</span>
-              </div>
+              <div class="walk-leg-pill">~${stop.walkFromPrevMin} мин пешком · ${stop.walkFromPrevKm} км</div>
             </div>
           `
           : "";
 
       const thumbHtml = stop.imageUrl
         ? `<img src="${escapeHtml(stop.imageUrl)}" alt="${escapeHtml(stop.name)}" class="stop-thumb-img" loading="lazy" />`
-        : `<div class="stop-thumb-img" style="display:flex;align-items:center;justify-content:center;color:#FFF;font-size:13px;padding:10px;text-align:center;">${escapeHtml(stop.clusterShortName || "Москва")}</div>`;
+        : `<div class="stop-thumb-img stop-thumb-fallback">${escapeHtml(stop.clusterShortName || "Москва")}</div>`;
 
       const exHtml = stop.activeExhibition
         ? `
           <div class="stop-ex-callout">
-            <strong>Выставка: ${escapeHtml(stop.activeExhibition.title)}</strong>
-            <span>${escapeHtml(stop.activeExhibition.until)} • ${escapeHtml(stop.activeExhibition.price)} — ${escapeHtml(stop.activeExhibition.highlight)}</span>
+            <strong>${escapeHtml(stop.activeExhibition.title)}</strong>
+            <span>${escapeHtml(stop.activeExhibition.until)}${stop.activeExhibition.price ? ` • ${escapeHtml(stop.activeExhibition.price)}` : ""}</span>
           </div>
         `
         : "";
 
       const tipHtml = stop.secretTip
-        ? `<div class="stop-tip-line"><strong>Деталь:</strong> ${escapeHtml(stop.secretTip)}</div>`
+        ? `<div class="stop-tip-line">${escapeHtml(stop.secretTip)}</div>`
         : "";
-
-      const stepRoleText =
-        idx === 0
-          ? `Шаг 1 из ${totalStops} • Старт прогулки`
-          : idx === totalStops - 1
-          ? `Шаг ${stop.stepNumber} из ${totalStops} • Финальная точка`
-          : `Шаг ${stop.stepNumber} из ${totalStops}`;
 
       return `
         ${legHtml}
@@ -1481,23 +1689,14 @@ function renderActiveRouteSheetOnly() {
             <div class="timeline-rail-line"></div>
           </div>
 
-          <div class="stop-item-card">
-            <div class="stop-thumb-wrap">
+          <div class="stop-item-body">
+            <div class="stop-thumb-wrap" data-open-place="${stop.id}" role="button" tabindex="0" aria-label="Открыть карточку места">
               ${thumbHtml}
             </div>
 
-            <div>
-              <span class="stop-step-kicker">${stepRoleText}</span>
-              <div class="stop-content-top">
-                <div>
-                  <h4 class="stop-item-title">${escapeHtml(stop.name)}</h4>
-                  <div class="stop-source-tag">${escapeHtml(stop.subcategory)} • ${escapeHtml(stop.sourceName || "Узнай Москву")}</div>
-                </div>
-                <span class="stop-reason-badge ${stop.reasonType}">
-                  ${escapeHtml(stop.statusBadge)}
-                </span>
-              </div>
-
+            <div class="stop-text">
+              <span class="stop-step-kicker">Шаг ${stop.stepNumber} из ${totalStops}</span>
+              <h4 class="stop-item-title" data-open-place="${stop.id}">${escapeHtml(stop.name)}</h4>
               <p class="stop-item-desc">${escapeHtml(stop.description)}</p>
               ${exHtml}
               ${tipHtml}
@@ -1505,8 +1704,7 @@ function renderActiveRouteSheetOnly() {
               <div class="stop-bottom-row">
                 <div class="stop-meta-info">
                   <span>м. ${escapeHtml(stop.metro)}</span>
-                  <span>~${stop.durationMin} мин на месте</span>
-                  ${stop.sourceUrl ? `<a href="${escapeHtml(stop.sourceUrl)}" target="_blank" rel="noopener" style="color:var(--highlight-green);text-decoration:none;">Подробнее ↗</a>` : ""}
+                  <span>~${stop.durationMin} мин</span>
                 </div>
 
                 <button
@@ -1514,7 +1712,7 @@ function renderActiveRouteSheetOnly() {
                   class="btn-replace-stop"
                   data-replace-id="${stop.id}"
                 >
-                  Уже был — заменить шаг
+                  Уже был — заменить
                 </button>
               </div>
             </div>
@@ -1526,65 +1724,53 @@ function renderActiveRouteSheetOnly() {
 
   viewEl.innerHTML = `
     <article class="route-detail-sheet">
-      <!-- 1. ЗАГЛАВНАЯ КАРТОЧКА ВЫБРАННОГО МАРШРУТА -->
+      <!-- 1. ШАПКА МАРШРУТА: НОМЕР, ОДНО НАЗВАНИЕ, ХАРАКТЕРИСТИКИ -->
       <div class="rds-header">
-        <div class="rds-pills">
-          <span class="rds-active-route-indicator">Маршрут ${appState.activeRouteIndex + 1} из ${appState.routes.length}</span>
-          <span class="rds-pill-cluster">${escapeHtml(route.clusterName)}</span>
-          ${(route.tags || []).map((t) => `<span class="rds-pill-tag">${escapeHtml(t)}</span>`).join("")}
-        </div>
+        <span class="rds-route-counter">Маршрут ${appState.activeRouteIndex + 1} из ${appState.routes.length}</span>
         <h2 class="rds-title">${escapeHtml(route.title)}</h2>
-        <p class="rds-subtitle">${escapeHtml(route.subtitle)}</p>
 
-        <div class="rds-stats-bar">
-          <div class="rds-stat">
-            <span>Длительность</span>
-            <strong>~${route.metrics.totalHoursText}</strong>
-          </div>
-          <div class="rds-stat">
-            <span>Пеший путь</span>
-            <strong>${route.metrics.totalWalkKm} км (${route.metrics.totalWalkMin} мин)</strong>
-          </div>
-          <div class="rds-stat">
-            <span>Старт у метро</span>
-            <strong>${escapeHtml(route.mapLinks.startMetro)}</strong>
-          </div>
-          <div class="rds-stat">
-            <span>Финиш у метро</span>
-            <strong>${escapeHtml(route.mapLinks.endMetro)}</strong>
-          </div>
+        <div class="rds-tags">
+          ${(route.tags || []).map((t) => `<span class="rds-tag">${escapeHtml(t)}</span>`).join("")}
+        </div>
+
+        <div class="rds-meta-line">
+          <span>${formatDurationText(route.metrics.totalDurationMin)}</span>
+          <span class="rds-meta-dot">•</span>
+          <span>${route.metrics.totalWalkKm} км пешком</span>
+          <span class="rds-meta-dot">•</span>
+          <span>${formatSteps(totalStops)}</span>
         </div>
       </div>
 
-      <!-- 2. КАРТА МАРШРУТА (НЕПОСРЕДСТВЕННО ПОД ОБЛОЖКОЙ) -->
+      <div class="rds-divider"></div>
+
+      <!-- 2. КАРТА МАРШРУТА -->
       <div class="yandex-map-section">
-        <div class="yandex-map-toolbar">
-          <div class="ymap-brand-badge">
-            <span class="ymap-red-letter">Я</span>
-            <span>Карта маршрута «${escapeHtml(route.clusterShortName)}» (${totalStops} шага)</span>
+        <div class="ymap-header">
+          <div class="ymap-header-text">
+            <span class="ymap-kicker">Карта маршрута</span>
+            <h3 class="ymap-title">${escapeHtml(route.clusterShortName)}</h3>
+            <span class="ymap-sub">${formatSteps(totalStops)}</span>
           </div>
-          <div class="ymap-mode-switch">
-            <button type="button" class="ymap-mode-btn ${appState.yandexMapMode === "jsapi" ? "active" : ""}" data-ymode="jsapi">
-              Маршрут и точки
-            </button>
-            <button type="button" class="ymap-mode-btn ${appState.yandexMapMode === "widget" ? "active" : ""}" data-ymode="widget">
-              Виджет Яндекса
-            </button>
-          </div>
+        </div>
+
+        <div class="ymap-mode-switch">
+          <button type="button" class="ymap-mode-btn ${appState.yandexMapMode === "jsapi" ? "active" : ""}" data-ymode="jsapi">
+            Маршрут и точки
+          </button>
+          <button type="button" class="ymap-mode-btn ${appState.yandexMapMode === "widget" ? "active" : ""}" data-ymode="widget">
+            Виджет Яндекса
+          </button>
         </div>
 
         <div id="yandexMapMount" class="yandex-map-canvas"></div>
       </div>
 
-      <!-- МОСТИК ОТ КАРТЫ К ПОШАГОВОЙ ЦЕПОЧКЕ -->
-      <div class="map-to-steps-bridge">
-        <div class="bridge-spine-node">
-          <span class="bridge-dot"></span>
-        </div>
-        <span class="bridge-label">Пошаговая нитка маршрута (${totalStops} связанных шага по порядку)</span>
+      <!-- 3. ПОШАГОВАЯ НИТКА -->
+      <div class="rds-steps-heading">
+        <h3>Пошаговая нитка маршрута</h3>
       </div>
 
-      <!-- 3. СВЯЗАННЫЕ ШАГИ МАРШРУТА НА ЕДИНОЙ ЛИНИИ -->
       <div class="rds-stops-list">
         ${stopsHtml}
       </div>
@@ -1597,7 +1783,7 @@ function renderActiveRouteSheetOnly() {
           rel="noopener"
           class="btn-go-yandex"
         >
-          <span>Открыть весь маршрут в Яндекс.Картах ↗</span>
+          Открыть весь маршрут в Яндекс.Картах
         </a>
         <button type="button" class="btn-complete-walk" id="markRouteDoneBtn">
           Прошёл этот маршрут
@@ -1605,6 +1791,16 @@ function renderActiveRouteSheetOnly() {
       </div>
     </article>
   `;
+
+  viewEl.querySelectorAll("[data-open-place]").forEach((el) => {
+    el.addEventListener("click", () => openPlaceDetail(el.dataset.openPlace));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openPlaceDetail(el.dataset.openPlace);
+      }
+    });
+  });
 
   viewEl.querySelectorAll("[data-ymode]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1757,7 +1953,10 @@ function renderMemoryDrawer() {
   if (!chipsContainer) return;
 
   if (visitedIds.length === 0) {
-    chipsContainer.innerHTML = `<span style="font-size:13px;color:var(--text-secondary);">Пока пусто — отметь знакомые места в калибровке или нажми «Уже был — заменить» в любом маршруте.</span>`;
+    chipsContainer.innerHTML = `
+      <div class="visited-empty">
+        <p>Пока пусто — отметь знакомые места в калибровке или нажми «Уже был — заменить» в любом маршруте.</p>
+      </div>`;
     return;
   }
 
@@ -1765,17 +1964,33 @@ function renderMemoryDrawer() {
     .map((id) => {
       const p = appState.places.find((x) => x.id === id);
       const title = p ? p.name.split("(")[0].trim() : id;
+      const photo = p ? (p.images && p.images[0]) || p.imageUrl : "";
+      const meta = p
+        ? `${CATEGORY_LABELS[p.category] || p.subcategory || "Место"}${p.metro ? ` • м. ${p.metro}` : ""}`
+        : "Место";
+      const thumb = photo
+        ? `<img src="${escapeHtml(photo)}" alt="${escapeHtml(title)}" loading="lazy" />`
+        : `<span>${escapeHtml(title.slice(0, 1))}</span>`;
       return `
-        <span class="visited-chip">
-          <span>${escapeHtml(title)}</span>
-          <button type="button" data-unvisit-id="${id}" title="Вернуть обратно в маршруты">✕</button>
-        </span>
+        <div class="visited-place-card">
+          <div class="visited-place-thumb" ${p ? `data-open-place="${id}"` : ""}>${thumb}</div>
+          <div class="visited-place-text" ${p ? `data-open-place="${id}"` : ""}>
+            <strong>${escapeHtml(title)}</strong>
+            <span>${escapeHtml(meta)}</span>
+          </div>
+          <button type="button" class="visited-remove-btn" data-unvisit-id="${id}" title="Вернуть обратно в маршруты" aria-label="Убрать из памяти">✕</button>
+        </div>
       `;
     })
     .join("");
 
+  chipsContainer.querySelectorAll("[data-open-place]").forEach((el) => {
+    el.addEventListener("click", () => openPlaceDetail(el.dataset.openPlace));
+  });
+
   chipsContainer.querySelectorAll("[data-unvisit-id]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
       const placeId = btn.dataset.unvisitId;
       const data = await apiRequest("api/memory/swipe", {
         method: "POST",
