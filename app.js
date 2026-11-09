@@ -1568,6 +1568,63 @@ function savedRouteNeedsRepair(route) {
   return false;
 }
 
+// Аккуратно чистим снимок, если пересобрать район уже нельзя:
+// убираем мусорные точки и перегоны, пересчитываем метрики.
+function sanitizeSavedRoute(route) {
+  if (typeof WheeeOffline === "undefined") return null;
+  const source = (route.stops || []).filter(
+    (s) => s && s.coords && !ROUTE_JUNK_RE.test(String(s.name || ""))
+  );
+  if (source.length === 0) return null;
+
+  const kept = [source[0]];
+  for (let i = 1; i < source.length; i++) {
+    const prev = kept[kept.length - 1];
+    if (WheeeOffline.haversineKm(prev.coords, source[i].coords) <= 3.3) {
+      kept.push(source[i]);
+    }
+  }
+
+  let totalWalkKm = 0.8;
+  let totalWalkMin = 11;
+  let totalExploreMin = 0;
+  const stops = kept.map((stop, idx) => {
+    let walkKm = 0;
+    let walkMin = 0;
+    if (idx > 0) {
+      const distance = WheeeOffline.haversineKm(kept[idx - 1].coords, stop.coords);
+      walkKm = +(distance * 1.32).toFixed(2);
+      walkMin = Math.max(4, Math.round((walkKm / 4.4) * 60));
+      totalWalkKm += walkKm;
+      totalWalkMin += walkMin;
+    }
+    totalExploreMin += Number(stop.durationMin) || 45;
+    return {
+      ...stop,
+      stepNumber: idx + 1,
+      walkFromPrevKm: walkKm,
+      walkFromPrevMin: walkMin
+    };
+  });
+
+  const totalDurationMin = totalWalkMin + totalExploreMin;
+  return {
+    ...route,
+    stops,
+    metrics: {
+      ...(route.metrics || {}),
+      stopCount: stops.length,
+      totalWalkKm: +totalWalkKm.toFixed(1),
+      totalWalkMin,
+      totalExploreMin,
+      totalDurationMin,
+      totalDurationText: formatDurationText(totalDurationMin),
+      totalHoursText: formatDurationText(totalDurationMin)
+    },
+    mapLinks: WheeeOffline.buildMapLinks(stops) || route.mapLinks
+  };
+}
+
 // Сохранённые маршруты — снимки. Если в них остались станции метро,
 // школьные музеи или перегоны по 7 км, тихо пересобираем маршрут по району.
 function repairSavedRoutes() {
@@ -1602,11 +1659,16 @@ function repairSavedRoutes() {
         savedAt: route.savedAt || new Date().toISOString()
       };
     } else {
-      delete saved[id];
-      appState.memory.removedSavedRoutes = {
-        ...(appState.memory.removedSavedRoutes || {}),
-        [id]: new Date().toISOString()
-      };
+      const cleaned = sanitizeSavedRoute(route);
+      if (cleaned) {
+        saved[id] = cleaned;
+      } else {
+        delete saved[id];
+        appState.memory.removedSavedRoutes = {
+          ...(appState.memory.removedSavedRoutes || {}),
+          [id]: new Date().toISOString()
+        };
+      }
     }
     changed = true;
   }
