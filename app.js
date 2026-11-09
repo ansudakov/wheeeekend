@@ -27,6 +27,7 @@ const appState = {
   yandexMapMode: "jsapi", // 'jsapi' | 'widget'
   ymapsInstance: null,
   savedYmapsInstance: null,
+  mapRenderTokens: {},
   networkInfo: null,
   serverAvailable: false,
   serverExpected: localStorage.getItem("wheee_server_expected") === "1",
@@ -133,6 +134,7 @@ function applyBootstrapPayload(data) {
 
 function finishBoot() {
   populateClusterSelect();
+  repairSavedRoutes();
   renderHeaderBar();
 
   const visitedCount = Object.keys(appState.memory.visitedPlaces || {}).length;
@@ -1543,6 +1545,79 @@ function renderSavedRouteHearts() {
   });
 }
 
+const ROUTE_JUNK_RE =
+  /станц(ия|ии)\s+метро|^метро\b|школьн|ГБОУ|колледж|музей\s+спорта/i;
+
+function savedRouteNeedsRepair(route) {
+  const stops = (route && route.stops) || [];
+  if (stops.length === 0) return true;
+  if (stops.some((s) => ROUTE_JUNK_RE.test(String(s.name || "")))) return true;
+  if (typeof WheeeOffline === "undefined") return false;
+
+  const cluster = (appState.clusters || []).find((c) => c.id === route.clusterId);
+  const isSuburb = Boolean(cluster && cluster.areaType === "suburb");
+  if (!isSuburb && stops.length < 2) return true;
+
+  const maxLegKm = isSuburb ? 10 : 3.3;
+  for (let i = 1; i < stops.length; i++) {
+    if (!stops[i - 1].coords || !stops[i].coords) return true;
+    if (WheeeOffline.haversineKm(stops[i - 1].coords, stops[i].coords) > maxLegKm) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Сохранённые маршруты — снимки. Если в них остались станции метро,
+// школьные музеи или перегоны по 7 км, тихо пересобираем маршрут по району.
+function repairSavedRoutes() {
+  const saved = appState.memory.savedRoutes || {};
+  const ids = Object.keys(saved);
+  if (ids.length === 0 || typeof WheeeOffline === "undefined") return;
+
+  let changed = false;
+  for (const id of ids) {
+    const route = saved[id];
+    if (!route || !savedRouteNeedsRepair(route)) continue;
+
+    let fresh = null;
+    if (route.clusterId) {
+      try {
+        const list = WheeeOffline.generateRoutes({
+          clusters: appState.clusters,
+          places: appState.places,
+          memory: appState.memory,
+          filters: { focus: "mix", duration: "medium", clusterId: route.clusterId }
+        });
+        fresh = list && list[0];
+      } catch (e) {
+        fresh = null;
+      }
+    }
+
+    if (fresh && fresh.stops && fresh.stops.length > 0) {
+      saved[id] = {
+        ...fresh,
+        id: route.id,
+        savedAt: route.savedAt || new Date().toISOString()
+      };
+    } else {
+      delete saved[id];
+      appState.memory.removedSavedRoutes = {
+        ...(appState.memory.removedSavedRoutes || {}),
+        [id]: new Date().toISOString()
+      };
+    }
+    changed = true;
+  }
+
+  if (changed) {
+    appState.memory.savedRoutes = saved;
+    persistMemory(appState.memory);
+    showToast("Избранные маршруты обновлены — без дальних перегонов");
+  }
+}
+
 function savedRouteDateText(iso) {
   if (!iso) return "";
   const date = new Date(iso);
@@ -1668,6 +1743,8 @@ function openSavedRouteDetail(id) {
 function closeSavedRouteDetail() {
   const detailEl = document.getElementById("savedRouteDetail");
   const listCard = document.getElementById("savedRoutesListCard");
+  appState.mapRenderTokens["savedYandexMapMount"] =
+    (appState.mapRenderTokens["savedYandexMapMount"] || 0) + 1;
   if (appState.savedYmapsInstance) {
     try {
       appState.savedYmapsInstance.destroy();
@@ -1898,6 +1975,7 @@ function renderRouteDetailInto(viewEl, route, options = {}) {
   const showComplete = options.showComplete !== false;
   const mapMountId = options.mapMountId || "yandexMapMount";
   const mapUrl = (route.mapLinks && route.mapLinks.yandexWebUrl) || "";
+  const stepsHeading = totalStops === 1 ? "Место поездки" : "Пошаговая нитка маршрута";
 
   const stopsHtml = stops
     .map((stop, idx) => {
@@ -1944,7 +2022,7 @@ function renderRouteDetailInto(viewEl, route, options = {}) {
             </div>
 
             <div class="stop-text">
-              <span class="stop-step-kicker">Шаг ${stop.stepNumber} из ${totalStops}</span>
+              <span class="stop-step-kicker">${totalStops === 1 ? "Точка поездки" : `Шаг ${stop.stepNumber} из ${totalStops}`}</span>
               <h4 class="stop-item-title" data-open-place="${stop.id}">${escapeHtml(stop.name)}</h4>
               <p class="stop-item-desc">${escapeHtml(stop.description)}</p>
               ${exHtml}
@@ -2039,7 +2117,7 @@ function renderRouteDetailInto(viewEl, route, options = {}) {
 
       <!-- 3. ПОШАГОВАЯ НИТКА -->
       <div class="rds-steps-heading">
-        <h3>Пошаговая нитка маршрута</h3>
+        <h3>${stepsHeading}</h3>
       </div>
 
       <div class="rds-stops-list">
@@ -2170,7 +2248,11 @@ function renderYandexMapForRoute(route, mountId = "yandexMapMount") {
   }
 
   mountEl.innerHTML = "";
+  const token = (appState.mapRenderTokens[mountId] || 0) + 1;
+  appState.mapRenderTokens[mountId] = token;
+
   ymaps.ready(() => {
+    if (appState.mapRenderTokens[mountId] !== token) return;
     if (!document.getElementById(mountId)) return;
     const center = stops[0].coords;
     const map = new ymaps.Map(

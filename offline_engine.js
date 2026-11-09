@@ -19,6 +19,15 @@
     return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   }
 
+  // Точки, которые не являются местом прогулки: станции метро, школьные
+  // и колледжные музеи. Они попадали в базу из городских справочников.
+  const JUNK_PLACE_RE =
+    /станц(ия|ии)\s+метро|^метро\b|школьн|ГБОУ|колледж|музей\s+спорта/i;
+
+  function isJunkPlace(place) {
+    return Boolean(place && JUNK_PLACE_RE.test(String(place.name || "")));
+  }
+
   function walkingDistanceKm(a, b) {
     return +(haversineKm(a, b) * 1.32).toFixed(2);
   }
@@ -171,6 +180,15 @@
   };
 
   function generateRouteTitle(cluster, stops, focus) {
+    // Загородная поездка — это одна конкретная точка, поэтому и название
+    // берём по ней, а не по общему кластеру.
+    if (cluster.areaType === "suburb" && stops.length === 1) {
+      const name = String(stops[0].name || "").split(":")[0].split("(")[0].trim();
+      if (name.length <= 52) return name;
+      const cut = name.slice(0, 52);
+      const space = cut.lastIndexOf(" ");
+      return `${(space > 20 ? cut.slice(0, space) : cut).trim()}…`;
+    }
     if (focus === "exhibition") {
       const hasCourtyard = stops.some((s) => s.category === "courtyard");
       return `${cluster.shortName}: ${hasCourtyard ? "выставки и старые дворы" : "выставки и музеи"}`;
@@ -302,6 +320,7 @@
       const clusterPlaces = places.filter((p) => p.clusterId === cluster.id);
       const eligible = [];
       for (const p of clusterPlaces) {
+        if (isJunkPlace(p)) continue;
         const ev = evaluatePlaceCandidate(p, memory);
         if (!ev.eligible) continue;
         let score = 10 + (p.quizPriority || 6);
@@ -323,13 +342,47 @@
       if (eligible.length === 0) continue;
       eligible.sort((a, b) => b.score - a.score);
 
-      const anchor = eligible[0];
-      const compact = eligible.filter(
-        (it) => cluster.areaType === "suburb" || haversineKm(anchor.place.coords, it.place.coords) <= 3.2
-      );
-      const pool = compact.length >= targetCount ? compact : eligible;
+      // Маршрут должен укладываться в один прогулочный радиус. Если вокруг
+      // лучшей точки мало соседей — пробуем следующую, а не тащим людей за 7 км.
+      const isSuburb = cluster.areaType === "suburb";
+
+      // За городом точки могут быть за десятки километров друг от друга.
+      // Каждый объект — самостоятельная поездка, а не шаг пешего маршрута.
+      if (isSuburb) {
+        for (const candidate of eligible.slice(0, 3)) {
+          scored.push({
+            cluster,
+            picked: [candidate.place],
+            totalScore:
+              candidate.score +
+              (exclude.includes(cluster.id) ? -12 : 0) +
+              Math.random() * 6
+          });
+        }
+        continue;
+      }
+
+      const maxAnchorKm = 3.2;
+      const maxLegKm = 3.2;
+      const minStops = 3;
+
+      let anchor = null;
+      let pool = [];
+      for (const candidate of eligible.slice(0, 8)) {
+        const compact = eligible.filter(
+          (it) => haversineKm(candidate.place.coords, it.place.coords) <= maxAnchorKm
+        );
+        if (compact.length >= Math.min(targetCount, minStops)) {
+          anchor = candidate;
+          pool = compact;
+          break;
+        }
+      }
+      if (!anchor) continue;
+
+      const effectiveTarget = Math.min(targetCount, pool.length);
       let picked = [];
-      if (focus === "mix" && pool.length >= targetCount) {
+      if (focus === "mix" && pool.length >= effectiveTarget) {
         const byCat = {
           courtyard: pool.filter((x) => x.place.category === "courtyard"),
           exhibition: pool.filter((x) => x.place.category === "exhibition"),
@@ -337,22 +390,33 @@
           nature: pool.filter((x) => x.place.category === "nature")
         };
         if (byCat.courtyard[0]) picked.push(byCat.courtyard[0]);
-        if (byCat.museum[0] && picked.length < targetCount) picked.push(byCat.museum[0]);
-        if (byCat.exhibition[0] && picked.length < targetCount) picked.push(byCat.exhibition[0]);
-        if (byCat.nature[0] && picked.length < targetCount) picked.push(byCat.nature[0]);
+        if (byCat.museum[0] && picked.length < effectiveTarget) picked.push(byCat.museum[0]);
+        if (byCat.exhibition[0] && picked.length < effectiveTarget) picked.push(byCat.exhibition[0]);
+        if (byCat.nature[0] && picked.length < effectiveTarget) picked.push(byCat.nature[0]);
         for (const item of pool) {
-          if (picked.length >= targetCount) break;
+          if (picked.length >= effectiveTarget) break;
           if (!picked.includes(item)) picked.push(item);
         }
       } else {
-        picked = pool.slice(0, Math.min(targetCount, pool.length));
+        picked = pool.slice(0, effectiveTarget);
       }
+
+      // Финальная проверка: выкидываем точки, до которых идти больше maxLegKm.
+      const orderedStops = orderStopsGeographically(picked.map((x) => x.place));
+      const coherent = [orderedStops[0]];
+      for (let i = 1; i < orderedStops.length; i++) {
+        const prev = coherent[coherent.length - 1];
+        if (haversineKm(prev.coords, orderedStops[i].coords) <= maxLegKm) {
+          coherent.push(orderedStops[i]);
+        }
+      }
+      if (coherent.length < minStops) continue;
 
       const totalScore =
         picked.reduce((a, x) => a + x.score, 0) / Math.max(1, picked.length) +
         (exclude.includes(cluster.id) ? -12 : 0) +
         Math.random() * 6;
-      scored.push({ cluster, picked: picked.map((x) => x.place), totalScore });
+      scored.push({ cluster, picked: coherent, totalScore });
     }
 
     scored.sort((a, b) => b.totalScore - a.totalScore);
