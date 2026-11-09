@@ -1,7 +1,7 @@
 /* Wheee!ekend — Service Worker.
    Кэширует оболочку приложения и базу мест, чтобы PWA запускалась
    с домашнего экрана даже без интернета и без запущенного Mac. */
-const VERSION = "wheee-v18";
+const VERSION = "wheee-v19";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 

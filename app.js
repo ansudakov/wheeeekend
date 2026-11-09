@@ -10,6 +10,8 @@ const appState = {
     unvisitedChecked: {},
     userNotes: [],
     completedRoutes: [],
+    savedRoutes: {},
+    removedSavedRoutes: {},
     settings: { allowVisitedIfNewExhibition: true }
   },
   weather: null,
@@ -24,6 +26,7 @@ const appState = {
   swipesInSession: 0,
   yandexMapMode: "jsapi", // 'jsapi' | 'widget'
   ymapsInstance: null,
+  savedYmapsInstance: null,
   networkInfo: null,
   serverAvailable: false,
   serverExpected: localStorage.getItem("wheee_server_expected") === "1",
@@ -35,16 +38,15 @@ const STORAGE = {
   routes: "wheee_routes_v2",
   filters: "wheee_filters_v2",
   bootstrap: "wheee_bootstrap_v2",
-  queue: "wheee_sync_queue_v2",
-  installDismissed: "wheee_install_hint_v1"
+  queue: "wheee_sync_queue_v2"
 };
 
 let offlineNoticeShown = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   applyTheme(appState.theme);
+  document.documentElement.classList.toggle("is-standalone", isStandaloneApp());
   bindUIEvents();
-  setupInstallExperience();
   registerServiceWorker();
   bootstrapApplication();
 });
@@ -149,6 +151,8 @@ function finishBoot() {
     closeSwipeScreen(false);
   } else if (requestedScreen === "memory") {
     openMemorySectionScreen();
+  } else if (requestedScreen === "saved") {
+    openSavedRoutesScreen();
   }
 
   renderRoutesView();
@@ -211,6 +215,8 @@ function mergeMemory(localMemory, remoteMemory) {
     unvisitedChecked: { ...(remote.unvisitedChecked || {}), ...(local.unvisitedChecked || {}) },
     userNotes: mergeUniqueById(remote.userNotes || [], local.userNotes || []),
     completedRoutes: mergeCompletedRoutes(remote.completedRoutes || [], local.completedRoutes || []),
+    savedRoutes: mergeSavedRoutes(local, remote),
+    removedSavedRoutes: { ...(remote.removedSavedRoutes || {}), ...(local.removedSavedRoutes || {}) },
     customPlaces: mergeUniqueById(remote.customPlaces || [], local.customPlaces || []),
     settings: { ...(remote.settings || {}), ...(local.settings || {}) }
   };
@@ -254,6 +260,30 @@ function mergeCompletedRoutes(a, b) {
   return mergeUniqueById(a, b).sort((x, y) =>
     String(y.completedAt || "").localeCompare(String(x.completedAt || ""))
   );
+}
+
+// Избранные маршруты храним снимками: маршрут можно открыть даже после
+// пересборки подборки. Удаления помечаем меткой времени, чтобы облачная
+// копия не «воскрешала» убранный маршрут при следующем слиянии.
+function mergeSavedRoutes(localMemory, remoteMemory) {
+  const local = localMemory || {};
+  const remote = remoteMemory || {};
+  const removed = {
+    ...(remote.removedSavedRoutes || {}),
+    ...(local.removedSavedRoutes || {})
+  };
+  const all = { ...(remote.savedRoutes || {}), ...(local.savedRoutes || {}) };
+  const result = {};
+
+  Object.keys(all).forEach((id) => {
+    const route = all[id];
+    if (!route) return;
+    const removedAt = removed[id];
+    if (removedAt && String(removedAt) >= String(route.savedAt || "")) return;
+    result[id] = route;
+  });
+
+  return result;
 }
 
 function persistRoutes(routes, activeIndex) {
@@ -642,81 +672,13 @@ function offlineApiResponse(url, method, options) {
   return {};
 }
 
-// ==================== УСТАНОВКА PWA ====================
-
-let deferredInstallPrompt = null;
+// ==================== PWA ====================
 
 function isStandaloneApp() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone === true
   );
-}
-
-function setupInstallExperience() {
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    updateInstallUi();
-  });
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    updateInstallUi();
-    showToast("Wheee!ekend установлен на телефон");
-  });
-  updateInstallUi();
-}
-
-function updateInstallUi() {
-  const standalone = isStandaloneApp();
-  document.documentElement.classList.toggle("is-standalone", standalone);
-  const btn = document.getElementById("installAppBtn");
-  if (btn) {
-    btn.classList.toggle("hidden", standalone);
-  }
-  const footer = document.getElementById("installFooterBtn");
-  if (footer) {
-    footer.classList.toggle("hidden", standalone);
-  }
-}
-
-function openInstallModal() {
-  const modal = document.getElementById("installModal");
-  if (!modal) return;
-  const ua = navigator.userAgent || "";
-  const isIOS =
-    /iphone|ipad|ipod/i.test(ua) ||
-    (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
-  const iosBlock = document.getElementById("installIosSteps");
-  const otherBlock = document.getElementById("installOtherSteps");
-  if (iosBlock) iosBlock.classList.toggle("hidden", !isIOS);
-  if (otherBlock) otherBlock.classList.toggle("hidden", isIOS);
-
-  const note = document.getElementById("installOfflineNote");
-  if (note) {
-    const secure =
-      location.protocol === "https:" ||
-      location.hostname === "localhost" ||
-      location.hostname === "127.0.0.1";
-    note.textContent = secure
-      ? "После установки приложение открывается без адресной строки и работает офлайн: отметки, маршруты и посещённые места хранятся на телефоне."
-      : "Отметки и маршруты сохраняются на телефоне. Чтобы приложение открывалось совсем без Mac, его нужно открыть по HTTPS-адресу.";
-  }
-
-  modal.classList.remove("hidden");
-}
-
-async function triggerInstall() {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    try {
-      await deferredInstallPrompt.userChoice;
-    } catch (e) {}
-    deferredInstallPrompt = null;
-    updateInstallUi();
-    return;
-  }
-  openInstallModal();
 }
 
 function registerServiceWorker() {
@@ -785,23 +747,6 @@ function bindUIEvents() {
     openSwipeScreen();
   });
 
-  // Установка приложения на телефон (Android — системный prompt, iPhone — инструкция)
-  document.getElementById("installAppBtn")?.addEventListener("click", async () => {
-    closeBurger();
-    await triggerInstall();
-  });
-  document.getElementById("installFooterBtn")?.addEventListener("click", () => {
-    triggerInstall();
-  });
-  document.getElementById("closeInstallModal")?.addEventListener("click", () => {
-    document.getElementById("installModal")?.classList.add("hidden");
-  });
-  document.getElementById("installModal")?.addEventListener("click", (e) => {
-    if (e.target && e.target.id === "installModal") {
-      e.target.classList.add("hidden");
-    }
-  });
-
   document.getElementById("navToRoutesBtn")?.addEventListener("click", () => {
     closeBurger();
     closeSwipeScreen(true);
@@ -812,7 +757,16 @@ function bindUIEvents() {
     openMemorySectionScreen();
   });
 
+  document.getElementById("navToSavedRoutesBtn")?.addEventListener("click", () => {
+    closeBurger();
+    openSavedRoutesScreen();
+  });
+
   document.getElementById("backToRoutesFromMemoryBtn")?.addEventListener("click", () => {
+    closeSwipeScreen(true);
+  });
+
+  document.getElementById("backToRoutesFromSavedBtn")?.addEventListener("click", () => {
     closeSwipeScreen(true);
   });
 
@@ -1063,6 +1017,12 @@ function renderHeaderBar() {
   const burgerVisited = document.getElementById("burgerVisitedCount");
   if (burgerVisited) burgerVisited.textContent = visitedCount;
 
+  const savedCount = savedRoutesSorted().length;
+  const burgerSaved = document.getElementById("burgerSavedCount");
+  if (burgerSaved) burgerSaved.textContent = savedCount;
+  const savedTitleCount = document.getElementById("savedRoutesCount");
+  if (savedTitleCount) savedTitleCount.textContent = savedCount;
+
   const weatherChip = document.getElementById("weatherChip");
   if (weatherChip && appState.weather) {
     const w = appState.weather;
@@ -1082,6 +1042,7 @@ function openSwipeScreen() {
   document.getElementById("onboardingSwipeScreen")?.classList.remove("hidden");
   document.getElementById("mainWalkScreen")?.classList.add("hidden");
   document.getElementById("memorySectionScreen")?.classList.add("hidden");
+  document.getElementById("savedRoutesScreen")?.classList.add("hidden");
   document.getElementById("teachSlimBar")?.classList.add("hidden");
   renderTinderCard();
 }
@@ -1090,13 +1051,26 @@ function openMemorySectionScreen() {
   document.getElementById("onboardingSwipeScreen")?.classList.add("hidden");
   document.getElementById("mainWalkScreen")?.classList.add("hidden");
   document.getElementById("memorySectionScreen")?.classList.remove("hidden");
+  document.getElementById("savedRoutesScreen")?.classList.add("hidden");
   document.getElementById("teachSlimBar")?.classList.add("hidden");
   renderMemoryDrawer();
+}
+
+function openSavedRoutesScreen() {
+  document.getElementById("onboardingSwipeScreen")?.classList.add("hidden");
+  document.getElementById("mainWalkScreen")?.classList.add("hidden");
+  document.getElementById("memorySectionScreen")?.classList.add("hidden");
+  document.getElementById("savedRoutesScreen")?.classList.remove("hidden");
+  document.getElementById("teachSlimBar")?.classList.add("hidden");
+  closeSavedRouteDetail();
+  renderSavedRoutesScreen();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 async function closeSwipeScreen(markDone = true) {
   document.getElementById("onboardingSwipeScreen")?.classList.add("hidden");
   document.getElementById("memorySectionScreen")?.classList.add("hidden");
+  document.getElementById("savedRoutesScreen")?.classList.add("hidden");
   document.getElementById("mainWalkScreen")?.classList.remove("hidden");
   document.getElementById("teachSlimBar")?.classList.remove("hidden");
   if (appState.ymapsInstance && appState.ymapsInstance.container) {
@@ -1485,6 +1459,228 @@ function closePlaceDetail() {
   document.body.style.overflow = placeDetailScrollLock || "";
 }
 
+// ==================== ИЗБРАННЫЕ МАРШРУТЫ ====================
+function heartSvg(filled) {
+  return `<svg viewBox="0 0 24 24" width="19" height="19" fill="${filled ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>`;
+}
+
+function savedRoutesSorted() {
+  return Object.values(appState.memory.savedRoutes || {}).sort((a, b) =>
+    String(b.savedAt || "").localeCompare(String(a.savedAt || ""))
+  );
+}
+
+function isRouteSaved(routeOrId) {
+  const id = typeof routeOrId === "string" ? routeOrId : routeOrId && routeOrId.id;
+  return Boolean(id && appState.memory.savedRoutes && appState.memory.savedRoutes[id]);
+}
+
+function findRouteById(id) {
+  if (!id) return null;
+  const current = (appState.routes || []).find((r) => r.id === id);
+  if (current) return current;
+  return (appState.memory.savedRoutes || {})[id] || null;
+}
+
+function toggleSavedRoute(route) {
+  if (!route || !route.id) return;
+
+  const saved = { ...(appState.memory.savedRoutes || {}) };
+  const removed = { ...(appState.memory.removedSavedRoutes || {}) };
+
+  if (saved[route.id]) {
+    delete saved[route.id];
+    removed[route.id] = new Date().toISOString();
+    showToast("Маршрут убран из избранного");
+  } else {
+    saved[route.id] = { ...route, savedAt: new Date().toISOString() };
+    delete removed[route.id];
+    showToast("Маршрут сохранён в избранное");
+  }
+
+  appState.memory.savedRoutes = saved;
+  appState.memory.removedSavedRoutes = removed;
+  persistMemory(appState.memory);
+  updateSavedRoutesCount();
+  renderSavedRouteHearts();
+
+  const listCard = document.getElementById("savedRoutesListCard");
+  if (listCard && !listCard.classList.contains("hidden")) {
+    renderSavedRoutesScreen();
+  }
+}
+
+function updateSavedRouteSnapshot(updatedRoute) {
+  if (!updatedRoute || !updatedRoute.id) return;
+  const saved = appState.memory.savedRoutes || {};
+  if (!saved[updatedRoute.id]) return;
+  saved[updatedRoute.id] = {
+    ...saved[updatedRoute.id],
+    ...updatedRoute,
+    savedAt: saved[updatedRoute.id].savedAt || new Date().toISOString()
+  };
+  appState.memory.savedRoutes = saved;
+  persistMemory(appState.memory);
+}
+
+function updateSavedRoutesCount() {
+  const count = savedRoutesSorted().length;
+  const burger = document.getElementById("burgerSavedCount");
+  if (burger) burger.textContent = count;
+  const title = document.getElementById("savedRoutesCount");
+  if (title) title.textContent = count;
+}
+
+function renderSavedRouteHearts() {
+  document.querySelectorAll("[data-save-route-id]").forEach((btn) => {
+    const route = findRouteById(btn.dataset.saveRouteId);
+    const on = isRouteSaved(route);
+    btn.classList.toggle("saved", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.setAttribute("aria-label", on ? "Убрать из избранного" : "Сохранить в избранное");
+    btn.innerHTML =
+      heartSvg(on) + (btn.dataset.saveLabel === "1" ? `<span>${on ? "В избранном" : "В избранное"}</span>` : "");
+  });
+}
+
+function savedRouteDateText(iso) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long" }).format(date);
+  } catch (e) {
+    return "";
+  }
+}
+
+function renderSavedRoutesScreen() {
+  const listEl = document.getElementById("savedRoutesList");
+  const listCard = document.getElementById("savedRoutesListCard");
+  if (!listEl || !listCard) return;
+
+  listCard.classList.remove("hidden");
+  document.getElementById("savedRouteDetail")?.classList.add("hidden");
+  updateSavedRoutesCount();
+
+  const routes = savedRoutesSorted();
+  if (routes.length === 0) {
+    listEl.innerHTML = `
+      <div class="saved-routes-empty">
+        <span class="saved-empty-heart">${heartSvg(false)}</span>
+        <h3>Пока пусто</h3>
+        <p>Открой любой маршрут и нажми сердечко «В избранное» — он появится здесь и останется даже после пересборки подборки.</p>
+      </div>`;
+    return;
+  }
+
+  listEl.innerHTML = routes
+    .map((route) => {
+      const stops = route.stops || [];
+      const firstStop = stops[0];
+      const photo = firstStop && firstStop.imageUrl;
+      const metrics = route.metrics || {};
+      const meta = [
+        formatDurationText(metrics.totalDurationMin),
+        metrics.totalWalkKm ? `${metrics.totalWalkKm} км` : "",
+        formatSteps(metrics.stopCount || stops.length)
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      const savedDate = savedRouteDateText(route.savedAt);
+
+      return `
+        <article class="saved-route-card" data-open-saved="${route.id}" role="button" tabindex="0" aria-label="Открыть маршрут «${escapeHtml(route.title)}»">
+          <div class="src-thumb">
+            ${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span>W!</span>`}
+          </div>
+          <div class="src-body">
+            <span class="src-cluster">${escapeHtml(route.clusterShortName || "Москва")}</span>
+            <h3 class="src-title">${escapeHtml(route.title)}</h3>
+            <div class="src-meta">${escapeHtml(meta)}</div>
+            ${savedDate ? `<span class="src-date">Сохранён ${escapeHtml(savedDate)}</span>` : ""}
+          </div>
+          <button type="button" class="src-remove saved" data-remove-saved="${route.id}" aria-label="Убрать из избранного">
+            ${heartSvg(true)}
+          </button>
+        </article>
+      `;
+    })
+    .join("");
+
+  listEl.querySelectorAll("[data-open-saved]").forEach((card) => {
+    const open = () => openSavedRouteDetail(card.dataset.openSaved);
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-remove-saved]")) return;
+      open();
+    });
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        open();
+      }
+    });
+  });
+
+  listEl.querySelectorAll("[data-remove-saved]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const route = (appState.memory.savedRoutes || {})[btn.dataset.removeSaved];
+      if (route) toggleSavedRoute(route);
+    });
+  });
+}
+
+function openSavedRouteDetail(id) {
+  const route = (appState.memory.savedRoutes || {})[id];
+  const detailEl = document.getElementById("savedRouteDetail");
+  const listCard = document.getElementById("savedRoutesListCard");
+  if (!route || !detailEl || !listCard) return;
+
+  listCard.classList.add("hidden");
+  detailEl.classList.remove("hidden");
+
+  renderRouteDetailInto(detailEl, route, {
+    counterText: "Избранный маршрут",
+    showComplete: false,
+    showBack: true,
+    mapMountId: "savedYandexMapMount",
+    onBack: () => {
+      closeSavedRouteDetail();
+      renderSavedRoutesScreen();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    onReplace: (updatedRoute) => updateSavedRouteSnapshot(updatedRoute),
+    onRefresh: () => openSavedRouteDetail(route.id),
+    onMapModeChange: () => openSavedRouteDetail(route.id),
+    onSavedToggle: () => {
+      if (!isRouteSaved(route.id)) {
+        closeSavedRouteDetail();
+        renderSavedRoutesScreen();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+  });
+
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeSavedRouteDetail() {
+  const detailEl = document.getElementById("savedRouteDetail");
+  const listCard = document.getElementById("savedRoutesListCard");
+  if (appState.savedYmapsInstance) {
+    try {
+      appState.savedYmapsInstance.destroy();
+    } catch (e) {}
+    appState.savedYmapsInstance = null;
+  }
+  if (detailEl) {
+    detailEl.classList.add("hidden");
+    detailEl.innerHTML = "";
+  }
+  listCard?.classList.remove("hidden");
+}
+
 // ==================== ГЛАВНЫЙ ЭКРАН: КАРУСЕЛЬ 3 МАРШРУТОВ + ЕДИНЫЙ МАРШРУТ ====================
 async function fetchFreshRoutes(excludeRouteClusterIds = [], showReloadFeedback = false) {
   const showcaseEl = document.getElementById("routesShowcaseSection");
@@ -1608,13 +1804,22 @@ function renderRoutesView(resetCarouselScroll = false) {
     .map((r, idx) => {
       const active = idx === appState.activeRouteIndex;
       return `
-        <button type="button" class="route-tab-card ${active ? "active" : ""}" data-ridx="${idx}" aria-pressed="${active ? "true" : "false"}">
+        <div class="route-tab-card ${active ? "active" : ""}" data-ridx="${idx}" role="button" tabindex="0" aria-pressed="${active ? "true" : "false"}">
           <div class="rtc-top-row">
             <span class="rtc-badge">${escapeHtml(r.clusterShortName)}</span>
-            <span class="rtc-check-circle" aria-hidden="true">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
+            <span class="rtc-top-actions">
+              <button
+                type="button"
+                class="rtc-heart ${isRouteSaved(r) ? "saved" : ""}"
+                data-save-route-id="${escapeHtml(r.id)}"
+                aria-pressed="${isRouteSaved(r) ? "true" : "false"}"
+                aria-label="${isRouteSaved(r) ? "Убрать из избранного" : "Сохранить в избранное"}"
+              >${heartSvg(isRouteSaved(r))}</button>
+              <span class="rtc-check-circle" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
             </span>
           </div>
           <span class="rtc-title">${escapeHtml(r.title)}</span>
@@ -1625,7 +1830,7 @@ function renderRoutesView(resetCarouselScroll = false) {
             <span class="rtc-metric-sep">·</span>
             <span class="rtc-metric-chip">${formatSteps(r.metrics.stopCount)}</span>
           </div>
-        </button>
+        </div>
       `;
     })
     .join("");
@@ -1634,9 +1839,26 @@ function renderRoutesView(resetCarouselScroll = false) {
     tabsEl.scrollTo({ left: 0, behavior: "smooth" });
   }
 
-  tabsEl.querySelectorAll(".route-tab-card").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      selectRouteByIndex(Number(btn.dataset.ridx), true);
+  tabsEl.querySelectorAll(".route-tab-card").forEach((card) => {
+    const select = () => selectRouteByIndex(Number(card.dataset.ridx), true);
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-save-route-id]")) return;
+      select();
+    });
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        select();
+      }
+    });
+  });
+
+  tabsEl.querySelectorAll("[data-save-route-id]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const card = btn.closest(".route-tab-card");
+      const route = card ? appState.routes[Number(card.dataset.ridx)] : null;
+      if (route) toggleSavedRoute(route);
     });
   });
 
@@ -1648,9 +1870,36 @@ function renderActiveRouteSheetOnly() {
   if (!viewEl || !appState.routes || appState.routes.length === 0) return;
 
   const route = appState.routes[appState.activeRouteIndex];
-  const totalStops = route.stops.length;
+  renderRouteDetailInto(viewEl, route, {
+    counterText: `Маршрут ${appState.activeRouteIndex + 1} из ${appState.routes.length}`,
+    showComplete: true,
+    mapMountId: "yandexMapMount",
+    onReplace: (updatedRoute) => {
+      appState.routes[appState.activeRouteIndex] = updatedRoute;
+      persistRoutes(appState.routes, appState.activeRouteIndex);
+      updateSavedRouteSnapshot(updatedRoute);
+    },
+    onRefresh: () => {
+      renderHeaderBar();
+      renderRoutesView();
+      renderMemoryDrawer();
+    }
+  });
+}
 
-  const stopsHtml = route.stops
+function renderRouteDetailInto(viewEl, route, options = {}) {
+  if (!viewEl || !route) return;
+
+  const stops = route.stops || [];
+  const totalStops = stops.length;
+  const metrics = route.metrics || {};
+  const isSaved = isRouteSaved(route);
+  const counterText = options.counterText || "Маршрут";
+  const showComplete = options.showComplete !== false;
+  const mapMountId = options.mapMountId || "yandexMapMount";
+  const mapUrl = (route.mapLinks && route.mapLinks.yandexWebUrl) || "";
+
+  const stopsHtml = stops
     .map((stop, idx) => {
       const legHtml =
         idx > 0
@@ -1722,11 +1971,34 @@ function renderActiveRouteSheetOnly() {
     })
     .join("");
 
+  const backHtml = options.showBack
+    ? `<div class="saved-detail-bar"><button type="button" class="saved-detail-back" id="savedDetailBackBtn">← К избранному</button></div>`
+    : "";
+
+  const completeHtml = showComplete
+    ? `<button type="button" class="btn-complete-walk" id="markRouteDoneBtn">
+         Прошёл этот маршрут
+       </button>`
+    : "";
+
   viewEl.innerHTML = `
+    ${backHtml}
     <article class="route-detail-sheet">
       <!-- 1. ШАПКА МАРШРУТА: НОМЕР, ОДНО НАЗВАНИЕ, ХАРАКТЕРИСТИКИ -->
       <div class="rds-header">
-        <span class="rds-route-counter">Маршрут ${appState.activeRouteIndex + 1} из ${appState.routes.length}</span>
+        <div class="rds-top-row">
+          <span class="rds-route-counter">${escapeHtml(counterText)}</span>
+          <button
+            type="button"
+            class="rds-save-btn ${isSaved ? "saved" : ""}"
+            data-save-route-id="${escapeHtml(route.id)}"
+            data-save-label="1"
+            aria-pressed="${isSaved ? "true" : "false"}"
+            aria-label="${isSaved ? "Убрать из избранного" : "Сохранить в избранное"}"
+          >
+            ${heartSvg(isSaved)}<span>${isSaved ? "В избранном" : "В избранное"}</span>
+          </button>
+        </div>
         <h2 class="rds-title">${escapeHtml(route.title)}</h2>
 
         <div class="rds-tags">
@@ -1734,9 +2006,8 @@ function renderActiveRouteSheetOnly() {
         </div>
 
         <div class="rds-meta-line">
-          <span>${formatDurationText(route.metrics.totalDurationMin)}</span>
-          <span class="rds-meta-dot">•</span>
-          <span>${route.metrics.totalWalkKm} км пешком</span>
+          <span>${formatDurationText(metrics.totalDurationMin)}</span>
+          ${metrics.totalWalkKm ? `<span class="rds-meta-dot">•</span><span>${metrics.totalWalkKm} км пешком</span>` : ""}
           <span class="rds-meta-dot">•</span>
           <span>${formatSteps(totalStops)}</span>
         </div>
@@ -1749,7 +2020,7 @@ function renderActiveRouteSheetOnly() {
         <div class="ymap-header">
           <div class="ymap-header-text">
             <span class="ymap-kicker">Карта маршрута</span>
-            <h3 class="ymap-title">${escapeHtml(route.clusterShortName)}</h3>
+            <h3 class="ymap-title">${escapeHtml(route.clusterShortName || "Москва")}</h3>
             <span class="ymap-sub">${formatSteps(totalStops)}</span>
           </div>
         </div>
@@ -1763,7 +2034,7 @@ function renderActiveRouteSheetOnly() {
           </button>
         </div>
 
-        <div id="yandexMapMount" class="yandex-map-canvas"></div>
+        <div id="${mapMountId}" class="yandex-map-canvas"></div>
       </div>
 
       <!-- 3. ПОШАГОВАЯ НИТКА -->
@@ -1778,16 +2049,14 @@ function renderActiveRouteSheetOnly() {
       <!-- Финальные действия -->
       <div class="rds-actions-footer">
         <a
-          href="${route.mapLinks.yandexWebUrl}"
+          href="${escapeHtml(mapUrl)}"
           target="_blank"
           rel="noopener"
           class="btn-go-yandex"
         >
           Открыть весь маршрут в Яндекс.Картах
         </a>
-        <button type="button" class="btn-complete-walk" id="markRouteDoneBtn">
-          Прошёл этот маршрут
-        </button>
+        ${completeHtml}
       </div>
     </article>
   `;
@@ -1805,8 +2074,22 @@ function renderActiveRouteSheetOnly() {
   viewEl.querySelectorAll("[data-ymode]").forEach((btn) => {
     btn.addEventListener("click", () => {
       appState.yandexMapMode = btn.dataset.ymode;
-      renderRoutesView();
+      if (options.onMapModeChange) options.onMapModeChange();
+      else renderRoutesView();
     });
+  });
+
+  viewEl.querySelectorAll("[data-save-route-id]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const target = findRouteById(btn.dataset.saveRouteId) || route;
+      toggleSavedRoute(target);
+      if (options.onSavedToggle) options.onSavedToggle();
+    });
+  });
+
+  viewEl.querySelector("#savedDetailBackBtn")?.addEventListener("click", () => {
+    if (options.onBack) options.onBack();
   });
 
   viewEl.querySelectorAll("[data-replace-id]").forEach((btn) => {
@@ -1821,8 +2104,8 @@ function renderActiveRouteSheetOnly() {
         body: JSON.stringify({ route, stopId, markVisited: true })
       });
       appState.memory = mergeMemory(appState.memory, data.memory);
-      appState.routes[appState.activeRouteIndex] = data.updatedRoute || route;
-      persistRoutes(appState.routes, appState.activeRouteIndex);
+      const updatedRoute = data.updatedRoute || route;
+      if (options.onReplace) options.onReplace(updatedRoute);
 
       const oldTitle = data.replacedPlace ? data.replacedPlace.name.split("(")[0].trim() : "Место";
       const newTitle = data.replacementPlace
@@ -1832,13 +2115,16 @@ function renderActiveRouteSheetOnly() {
         : "исключено";
 
       showToast(`«${oldTitle}» в базе «Уже был» • ${newTitle}`);
-      renderHeaderBar();
-      renderRoutesView();
-      renderMemoryDrawer();
+      if (options.onRefresh) options.onRefresh();
+      else {
+        renderHeaderBar();
+        renderRoutesView();
+        renderMemoryDrawer();
+      }
     });
   });
 
-  document.getElementById("markRouteDoneBtn")?.addEventListener("click", async () => {
+  viewEl.querySelector("#markRouteDoneBtn")?.addEventListener("click", async () => {
     const data = await apiRequest("api/routes/complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1854,18 +2140,19 @@ function renderActiveRouteSheetOnly() {
     renderMemoryDrawer();
   });
 
-  renderYandexMapForRoute(route);
+  renderYandexMapForRoute(route, mapMountId);
 }
 
-function renderYandexMapForRoute(route) {
-  const mountEl = document.getElementById("yandexMapMount");
+function renderYandexMapForRoute(route, mountId = "yandexMapMount") {
+  const mountEl = document.getElementById(mountId);
   if (!mountEl) return;
 
-  if (appState.ymapsInstance) {
+  const instanceKey = mountId === "savedYandexMapMount" ? "savedYmapsInstance" : "ymapsInstance";
+  if (appState[instanceKey]) {
     try {
-      appState.ymapsInstance.destroy();
+      appState[instanceKey].destroy();
     } catch (e) {}
-    appState.ymapsInstance = null;
+    appState[instanceKey] = null;
   }
 
   const stops = route.stops || [];
@@ -1884,10 +2171,10 @@ function renderYandexMapForRoute(route) {
 
   mountEl.innerHTML = "";
   ymaps.ready(() => {
-    if (!document.getElementById("yandexMapMount")) return;
+    if (!document.getElementById(mountId)) return;
     const center = stops[0].coords;
     const map = new ymaps.Map(
-      "yandexMapMount",
+      mountId,
       {
         center,
         zoom: 14,
@@ -1897,7 +2184,7 @@ function renderYandexMapForRoute(route) {
         suppressMapOpenBlock: false
       }
     );
-    appState.ymapsInstance = map;
+    appState[instanceKey] = map;
 
     const coordsArray = stops.map((s) => s.coords);
 

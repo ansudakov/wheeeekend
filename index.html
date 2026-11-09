@@ -284,11 +284,35 @@
       </div>
     </section>
 
+    <!-- ==================== ЭКРАН «ИЗБРАННЫЕ МАРШРУТЫ» (ИЗ СЭНДВИЧ-МЕНЮ) ==================== -->
+    <section id="savedRoutesScreen" class="saved-routes-screen hidden">
+      <div class="saved-routes-card" id="savedRoutesListCard">
+        <div class="drawer-header-row">
+          <div>
+            <span class="eyebrow-tag">Коллекция</span>
+            <h2 class="drawer-title">Избранные маршруты</h2>
+            <p class="drawer-subtitle">Сохранено: <strong id="savedRoutesCount">0</strong></p>
+          </div>
+        </div>
+
+        <p class="drawer-hint">
+          Маршруты сохраняются вместе с шагами, картой и описаниями. Нажми на сердечко, чтобы убрать маршрут из избранного.
+        </p>
+
+        <div id="savedRoutesList" class="saved-routes-list"></div>
+
+        <div class="memory-actions-footer">
+          <button type="button" class="outline-btn memory-back-btn" id="backToRoutesFromSavedBtn">
+            Назад к маршрутам
+          </button>
+        </div>
+      </div>
+
+      <div id="savedRouteDetail" class="saved-route-detail hidden"></div>
+    </section>
+
     <!-- Аккуратный скромный футер в самом низу -->
     <footer class="app-minimal-footer">
-      <button type="button" class="footer-subtle-link" id="installFooterBtn">
-        Установить приложение на телефон
-      </button>
       <button type="button" class="footer-subtle-link" id="openIphoneBtn">
         Открыть на iPhone (QR-код)
       </button>
@@ -336,12 +360,12 @@
           <span>Аккаунт: <strong id="burgerAccountStatus">вход не выполнен</strong></span>
           <span class="nav-arrow">→</span>
         </button>
-        <button type="button" class="burger-nav-item" id="installAppBtn">
-          <span>Установить приложение на телефон</span>
-          <span class="nav-arrow">↓</span>
-        </button>
         <button type="button" class="burger-nav-item" id="navToRoutesBtn">
           <span>Маршруты прогулки</span>
+          <span class="nav-arrow">→</span>
+        </button>
+        <button type="button" class="burger-nav-item" id="navToSavedRoutesBtn">
+          <span>Избранные маршруты: <strong id="burgerSavedCount">0</strong></span>
           <span class="nav-arrow">→</span>
         </button>
         <button type="button" class="burger-nav-item" id="navToMemoryBtn">
@@ -488,43 +512,6 @@
       <div class="qr-card">
         <img id="qrImage" width="180" height="180" alt="QR" />
         <a id="iphoneDirectLink" href="#" target="_blank">http://localhost:3456</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== МОДАЛКА УСТАНОВКИ ПРИЛОЖЕНИЯ ==================== -->
-  <div class="modal-overlay hidden" id="installModal">
-    <div class="modal-box install-modal-box">
-      <div class="modal-top">
-        <h3>Установить Wheee!ekend</h3>
-        <button type="button" class="close-btn" id="closeInstallModal" aria-label="Закрыть">✕</button>
-      </div>
-
-      <div id="installIosSteps">
-        <p class="modal-p">
-          На iPhone приложение ставится прямо из Safari — без App Store:
-        </p>
-        <ol class="install-steps">
-          <li>Нажмите кнопку <strong>«Поделиться»</strong> внизу экрана (квадрат со стрелкой вверх).</li>
-          <li>Выберите <strong>«На экран Домой»</strong>.</li>
-          <li>Нажмите <strong>«Добавить»</strong> — иконка <strong>W!</strong> появится на домашнем экране.</li>
-        </ol>
-      </div>
-
-      <div id="installOtherSteps" class="hidden">
-        <p class="modal-p">
-          Установите приложение через меню браузера:
-        </p>
-        <ol class="install-steps">
-          <li>Откройте меню браузера <strong>⋮</strong> или <strong>«Поделиться»</strong>.</li>
-          <li>Выберите <strong>«Установить приложение»</strong> или <strong>«Добавить на главный экран»</strong>.</li>
-          <li>Подтвердите установку.</li>
-        </ol>
-      </div>
-
-      <div class="install-note" id="installOfflineNote">
-        После установки приложение открывается без адресной строки, помнит ваши отметки
-        и сохраняет маршруты на телефоне. Открывайте его с иконки на домашнем экране.
       </div>
     </div>
   </div>
