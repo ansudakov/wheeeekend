@@ -1592,7 +1592,7 @@ function renderSavedRoutesScreen() {
       return `
         <article class="saved-route-card" data-open-saved="${route.id}" role="button" tabindex="0" aria-label="Открыть маршрут «${escapeHtml(route.title)}»">
           <div class="src-thumb">
-            ${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="lazy" />` : `<span>W!</span>`}
+            ${photo ? `<img src="${escapeHtml(photo)}" alt="" loading="eager" />` : `<span>W!</span>`}
           </div>
           <div class="src-body">
             <span class="src-cluster">${escapeHtml(route.clusterShortName || "Москва")}</span>
