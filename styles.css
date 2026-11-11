@@ -744,9 +744,9 @@ img { display: block; max-width: 100%; }
 
 /* dark map: filter instead of flat overlay */
 .route-map-live::after { display: none !important; }
-:root[data-theme="dark"] .route-map-live { filter: brightness(.45) contrast(1.2) saturate(.55); }
+:root[data-theme="dark"] .route-map-live { filter: brightness(.32) contrast(1.2) saturate(.45); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .route-map-live { filter: brightness(.45) contrast(1.2) saturate(.55); }
+  :root:not([data-theme="light"]) .route-map-live { filter: brightness(.32) contrast(1.2) saturate(.45); }
 }
 .loading .screen-title { font-size: 26px; }
 html.is-offline .app-column { padding-top: 64px; }
@@ -770,3 +770,14 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .onboarding-app-icon { width: 44px; height: 44px; border-radius: 12px; }
 .onboarding-wordmark { width: 168px; display: block; }
 .onboarding-wordmark .wordmark { width: 100%; }
+
+/* Yandex Static Maps under our route overlay */
+.yandex-static-layer { position: absolute; inset: 0; z-index: 1; opacity: 0; transition: opacity .25s var(--ease-out); }
+.yandex-static-layer.loaded { opacity: 1; }
+.yandex-static-layer.failed { display: none; }
+.yandex-static-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.yandex-static-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
+:root[data-theme="dark"] .yandex-static-img { filter: brightness(.32) contrast(1.2) saturate(.45); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .yandex-static-img { filter: brightness(.32) contrast(1.2) saturate(.45); }
+}

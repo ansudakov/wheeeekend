@@ -780,6 +780,82 @@
       </svg>`;
   }
 
+
+  function mercatorPoint(lat, lon, zoom) {
+    const scale = 256 * Math.pow(2, zoom);
+    const x = ((lon + 180) / 360) * scale;
+    const sin = Math.sin((lat * Math.PI) / 180);
+    const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale;
+    return { x, y };
+  }
+
+  function yandexStaticLayer(route) {
+    const stops = route.stops || [];
+    if (!stops.length) return "";
+    const W = 390, H = 330, padX = 42, padTop = 120, padBottom = 42;
+    const lats = stops.map((s) => s.coords[0]);
+    const lons = stops.map((s) => s.coords[1]);
+    let centerLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+    let centerLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+    let zoom = 16;
+    let center = null;
+    let points = [];
+    for (; zoom >= 9; zoom--) {
+      center = mercatorPoint(centerLat, centerLon, zoom);
+      points = stops.map((s) => {
+        const p = mercatorPoint(s.coords[0], s.coords[1], zoom);
+        return { x: p.x - center.x + W / 2, y: p.y - center.y + H / 2 };
+      });
+      const xs = points.map((p) => p.x);
+      const ys = points.map((p) => p.y);
+      const fitsX = Math.max(...xs) - Math.min(...xs) <= W - padX * 2;
+      const fitsY = Math.max(...ys) - Math.min(...ys) <= H - padTop - padBottom;
+      if (fitsX && fitsY) break;
+    }
+    const scale = 256 * Math.pow(2, zoom);
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    const bboxCenterX = (Math.min(...xs) + Math.max(...xs)) / 2;
+    const bboxCenterY = (Math.min(...ys) + Math.max(...ys)) / 2;
+    const desiredX = W / 2;
+    const desiredY = (padTop + (H - padBottom)) / 2;
+    centerLon += ((desiredX - bboxCenterX) / scale) * 360;
+    const centerY = mercatorPoint(centerLat, centerLon, zoom).y - (desiredY - bboxCenterY);
+    const n = Math.PI * (1 - (2 * centerY) / scale);
+    centerLat = (180 / Math.PI) * Math.atan(Math.sinh(n));
+    center = mercatorPoint(centerLat, centerLon, zoom);
+    points = stops.map((s) => {
+      const p = mercatorPoint(s.coords[0], s.coords[1], zoom);
+      return { x: p.x - center.x + W / 2, y: p.y - center.y + H / 2 };
+    });
+    const url = `https://static-maps.yandex.ru/1.x/?ll=${centerLon.toFixed(6)},${centerLat.toFixed(6)}&z=${zoom}&size=${W},${H}&l=map&lang=ru_RU`;
+    const d = points.map((p, i) => `${i ? "L" : "M"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+    return `
+      <div class="yandex-static-layer" id="yandexStaticLayer">
+        <img class="yandex-static-img" src="${url}" alt="Яндекс.Карта маршрута" loading="eager">
+        <svg class="yandex-static-overlay" viewBox="0 0 390 330" aria-hidden="true">
+          <path d="${d}" fill="none" class="map-route" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+          ${stops.map((s, i) => {
+            const last = i === stops.length - 1;
+            return `<g><circle cx="${points[i].x}" cy="${points[i].y}" r="${last ? 15 : 13}" class="${last ? "map-finish" : "map-marker"}" stroke-width="3"></circle><text x="${points[i].x}" y="${points[i].y + (last ? 5 : 4)}" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="${last ? 16 : 12}" class="${last ? "map-finish-text" : "map-marker-text"}">${last ? "!" : s.stepNumber}</text></g>`;
+          }).join("")}
+          <text x="${points[0].x}" y="${points[0].y + 30}" text-anchor="middle" class="map-metro-label">м. ${escapeHtml((stops[0].metro || "").split("/")[0].trim())}</text>
+          <text x="${points[points.length - 1].x}" y="${points[points.length - 1].y - 22}" text-anchor="middle" class="map-metro-label">м. ${escapeHtml((stops[stops.length - 1].metro || "").split("/")[0].trim())}</text>
+        </svg>
+      </div>`;
+  }
+
+  function initYandexStaticLayer() {
+    const layer = $("#yandexStaticLayer");
+    if (!layer) return;
+    const img = $(".yandex-static-img", layer);
+    if (!img) return;
+    const show = () => layer.classList.add("loaded");
+    if (img.complete && img.naturalWidth > 0) show();
+    else img.addEventListener("load", show, { once: true });
+    img.addEventListener("error", () => layer.classList.add("failed"), { once: true });
+  }
+
   function renderRoute() {
     let route = routeFromParams();
     if (!route && state.places.length) {
@@ -809,7 +885,7 @@
       <section class="screen route-screen">
         <div class="route-map-wrap">
           ${staticRouteMap(route)}
-          <div id="routeMapLive" class="route-map-live"></div>
+          ${yandexStaticLayer(route)}
           <div class="route-map-controls">
             ${backButton(fromFavorites ? "route-back-favorites" : "route-back-routes", "Назад")}
             <div class="route-map-right">
@@ -831,7 +907,7 @@
           </div>
         </div>
       </section>`;
-    initYandexRouteMap(route);
+    initYandexStaticLayer();
   }
 
   function routeStep(stop, index, total) {
@@ -852,55 +928,6 @@
         </button>
         ${finish ? "" : `<button type="button" class="icon-btn swap-btn" data-replace-stop="${stop.id}" aria-label="Уже был — заменить место">${icon("i-swap")}</button>`}
       </div>`;
-  }
-
-  function initYandexRouteMap(route) {
-    if (typeof ymaps === "undefined") return;
-    if (location.hostname === "localhost" || location.hostname === "127.0.0.1") return;
-    const mount = $("#routeMapLive");
-    if (!mount) return;
-    ymaps.ready(() => {
-      if (!document.getElementById("routeMapLive")) return;
-      try {
-        const stops = route.stops || [];
-        if (!stops.length) return;
-        mount.innerHTML = "";
-        const map = new ymaps.Map("routeMapLive", {
-          center: stops[0].coords,
-          zoom: 14,
-          controls: []
-        }, { suppressMapOpenBlock: true });
-        state.map = map;
-        try { map.events.add("tilesloaded", () => mount.classList.add("map-ready")); } catch (e) {}
-        const manualTheme = document.documentElement.getAttribute("data-theme");
-        const isDark = manualTheme === "dark" || (!manualTheme && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        if (isDark) {
-          try { map.layers.get(0).options.set("brightness", -0.55); } catch (e) {}
-        }
-        if (stops.length > 1) {
-          map.geoObjects.add(new ymaps.Polyline(stops.map((s) => s.coords), {}, {
-            strokeColor: isDark ? "#7BE3AE" : "#13854F", strokeWidth: 6, strokeOpacity: 1, strokeStyle: "solid"
-          }));
-        }
-        stops.forEach((s, i) => {
-          const last = i === stops.length - 1;
-          const fill = last ? "#FF5B2E" : isDark ? "#F4F2EC" : "#12161C";
-          const textFill = last ? "#12161C" : isDark ? "#12161C" : "#FFFFFF";
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30"><circle cx="15" cy="15" r="13" fill="${fill}" stroke="#FFFFFF" stroke-width="3"/><text x="15" y="20" text-anchor="middle" font-family="Manrope,Arial" font-weight="800" font-size="${last ? 16 : 12}" fill="${textFill}">${last ? "!" : s.stepNumber}</text></svg>`;
-          map.geoObjects.add(new ymaps.Placemark(s.coords, {
-            hintContent: s.name,
-            balloonContentHeader: `${s.stepNumber}. ${escapeHtml(s.name)}`,
-            balloonContentBody: escapeHtml(s.subcategory || "")
-          }, {
-            iconLayout: "default#image",
-            iconImageHref: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-            iconImageSize: [30, 30],
-            iconImageOffset: [-15, -15]
-          }));
-        });
-        map.setBounds(map.geoObjects.getBounds(), { checkZoomRange: true, zoomMargin: 36 });
-      } catch (e) {}
-    });
   }
 
   function replaceStop(route, stopId) {
