@@ -1,0 +1,125 @@
+/* Wheee!ekend — дизайн-токены.
+   Подключать первым файлом стилей. Тема: по умолчанию системная;
+   ручной выбор пишет data-theme="light" | "dark" на <html>. */
+
+@import url("https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+:root {
+  /* Шрифты */
+  --font-display: "Unbounded", system-ui, sans-serif;   /* заголовки, цифры, логотип: 700/800 */
+  --font-ui: "Manrope", system-ui, -apple-system, sans-serif; /* всё остальное: 400–800 */
+
+  /* Бренд (не меняются между темами) */
+  --ink: #12161C;
+  --paper: #F4F2EC;
+  --route: #4BD48F;        /* акцент на тёмном, CTA «Хочу», линия маршрута */
+  --route-text: #13854F;   /* зелёный ТЕКСТ и иконки на светлом (контраст 4.5:1) */
+  --wow: #FF5B2E;          /* только «!»: финиш, секрет места, «Уже был» */
+  --wow-text: #B2350F;     /* оранжевый текст на светлом */
+  --metro: #E4413B;        /* значок «М» */
+  --error: #C8361A;
+  --error-text: #B02E14;
+  --warn-bg: #FFF4E0;
+  --warn-text: #6B4A0E;
+
+  /* Поверхности — светлая тема */
+  --bg: #F4F2EC;
+  --surface: #FFFFFF;
+  --surface-sunken: #E8E5DC;   /* подложка сегментов */
+  --surface-inverse: #12161C;  /* тёмные карточки «Секрет места», тосты */
+  --line: #E4E1D8;
+  --line-soft: #EFECE4;        /* разделители внутри списков */
+  --text: #12161C;
+  --text-body: #2A2F37;
+  --text-muted: #5E636B;
+  --text-inverse: #F4F2EC;
+  --text-inverse-muted: #B9BEC6;
+  --tint-route: #E3F5EB;       /* фон выбранного чипа */
+  --tint-route-text: #0E6B3F;
+  --tint-wow: #FFE7DF;
+  --grabber: #CFCBC0;
+  --map-bg: #ECE8DD;
+
+  /* Радиусы */
+  --r-chip: 999px;
+  --r-sm: 10px;    /* внутренние кнопки сегментов */
+  --r-md: 14px;    /* поля ввода, мелкие кнопки */
+  --r-lg: 16px;    /* кнопки 52–56 */
+  --r-xl: 18px;    /* главные CTA 58, плитки настроения */
+  --r-card: 24px;  /* карточки маршрутов */
+  --r-sheet: 28px; /* шторки и карточки свайпа */
+
+  /* Отступы (сетка 4) */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px;
+  --gutter: 20px;          /* боковые поля экрана; 16 на экранах свайпа и маршрута */
+  --safe-top: max(env(safe-area-inset-top), 44px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 20px);
+
+  /* Размеры */
+  --tap: 44px;         /* минимальная зона нажатия */
+  --btn-h: 58px;       /* главная кнопка */
+  --btn-h-sm: 52px;
+  --input-h: 52px;
+  --tabbar-h: 64px;    /* без safe-area */
+
+  /* Тени */
+  --shadow-card: 0 12px 30px rgba(18,22,28,.08);
+  --shadow-float: 0 10px 30px rgba(18,22,28,.30);
+  --shadow-swipe: 0 24px 50px rgba(0,0,0,.50);
+
+  /* Типографика: размер / межстрочный / вес / трекинг */
+  --t-hero: 700 31px/1.12 var(--font-display);    /* letter-spacing: -0.03em; онбординг */
+  --t-h1: 800 28px/1.12 var(--font-display);      /* -0.03em; заголовки корневых экранов */
+  --t-h2: 800 22px/1.15 var(--font-display);      /* -0.02em; маршрут, карточка места */
+  --t-card: 800 27px/1.1 var(--font-display);     /* -0.02em; название в свайпе (22px при 3 строках) */
+  --t-body: 400 15px/1.5 var(--font-ui);
+  --t-body-strong: 800 15px/1.35 var(--font-ui);
+  --t-label: 800 13px/1.2 var(--font-ui);         /* UPPERCASE, letter-spacing: .08em */
+  --t-meta: 600 13px/1.4 var(--font-ui);
+  --t-tab: 700 11px/1.2 var(--font-ui);
+
+  /* Движение */
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-spring: cubic-bezier(.3,1.6,.5,1);
+  --dur-fast: 150ms;
+  --dur: 250ms;
+  --dur-slow: 350ms;
+
+  color-scheme: light;
+}
+
+/* Тёмная тема: системная, если пользователь не выбрал вручную */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161C; --surface: #1B2129; --surface-sunken: #0B0E12; --surface-inverse: #F4F2EC;
+    --line: #2C3440; --line-soft: #262D37;
+    --text: #F4F2EC; --text-body: #DADDE2; --text-muted: #A9AEB6;
+    --text-inverse: #12161C; --text-inverse-muted: #5E636B;
+    --route-text: #4BD48F; --wow-text: #FF8A66;
+    --tint-route: #173326; --tint-route-text: #7BE3AE; --tint-wow: #3A1E14;
+    --grabber: #4C5562; --map-bg: #161B22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161C; --surface: #1B2129; --surface-sunken: #0B0E12; --surface-inverse: #F4F2EC;
+  --line: #2C3440; --line-soft: #262D37;
+  --text: #F4F2EC; --text-body: #DADDE2; --text-muted: #A9AEB6;
+  --text-inverse: #12161C; --text-inverse-muted: #5E636B;
+  --route-text: #4BD48F; --wow-text: #FF8A66;
+  --tint-route: #173326; --tint-route-text: #7BE3AE; --tint-wow: #3A1E14;
+  --grabber: #4C5562; --map-bg: #161B22;
+  color-scheme: dark;
+}
+
+/* Экраны онбординга, свайпа, «На прогулке», «Вкус пойман» и «Запуск» — ВСЕГДА тёмные,
+   независимо от темы. Повесьте класс .theme-ink на корень этих экранов. */
+.theme-ink {
+  --bg: #12161C; --surface: #1B2129; --surface-raised: #1E242D; --line: #2C3440;
+  --text: #F4F2EC; --text-body: #DADDE2; --text-muted: #A9AEB6;
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-fast: 0ms; --dur: 0ms; --dur-slow: 0ms; }
+}

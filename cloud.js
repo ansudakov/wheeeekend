@@ -531,6 +531,7 @@
     resetPassword,
     pullMemory,
     pushMemory,
+    checkInvite: getInvite,
     hasPending: () => state.dirty,
     CloudError
   };

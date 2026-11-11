@@ -13,8 +13,8 @@
     "minimal-ui"
   ],
   "orientation": "portrait",
-  "background_color": "#F4F6F4",
-  "theme_color": "#F4F6F4",
+  "background_color": "#12161C",
+  "theme_color": "#12161C",
   "categories": [
     "travel",
     "lifestyle",
@@ -57,7 +57,7 @@
       "name": "Подобрать маршрут",
       "short_name": "Маршруты",
       "description": "Открыть подбор прогулки",
-      "url": "./?screen=routes",
+      "url": "./?screen=walks",
       "icons": [
         {
           "src": "icon-192.png",
@@ -81,7 +81,7 @@
       "name": "Избранные маршруты",
       "short_name": "Избранное",
       "description": "Сохранённые маршруты прогулок",
-      "url": "./?screen=saved",
+      "url": "./?screen=favorites",
       "icons": [
         {
           "src": "icon-192.png",

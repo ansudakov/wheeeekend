@@ -1,7 +1,7 @@
 /* Wheee!ekend — Service Worker.
    Кэширует оболочку приложения и базу мест, чтобы PWA запускалась
    с домашнего экрана даже без интернета и без запущенного Mac. */
-const VERSION = "wheee-v23";
+const VERSION = "wheee-v28";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
@@ -15,12 +15,19 @@ const CONFIG_PATH = new URL("firebase-config.js", self.location.href).pathname;
 const SHELL_ASSETS = [
   "./",
   "index.html",
+  "tokens.css",
   "styles.css",
+  "icons.svg",
+  "wordmark-light.svg",
+  "wordmark-dark.svg",
   "app.js",
+  "screens.js",
   "cloud.js",
   "firebase-config.js",
   "offline_engine.js",
   "manifest.json",
+  "favicon.svg",
+  "favicon-32.png",
   "icon.svg",
   "icon-192.png",
   "icon-512.png",

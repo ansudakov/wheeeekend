@@ -1,536 +1,73 @@
 <!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Wheee!ekend" />
   <meta name="application-name" content="Wheee!ekend" />
   <meta name="format-detection" content="telephone=no" />
-  <!-- Отправляем Firebase полный адрес страницы (а не только домен),
-       чтобы ограничение ключа можно было сузить до /wheeeekend/.
-       Безопасно: в адресах приложения нет токенов или личных данных. -->
   <meta name="referrer" content="no-referrer-when-downgrade" />
-  <meta name="theme-color" content="#F4F6F4" id="metaThemeColor" />
+  <meta name="theme-color" content="#F4F2EC" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#12161C" media="(prefers-color-scheme: dark)" />
   <title>Wheee!ekend — Прогулки по Москве и Подмосковью</title>
   <meta name="description" content="Персональные прогулки по Москве и Подмосковью: отмечайте места, где уже были, и получайте маршруты с дворами, выставками и парками. Работает офлайн и помнит ваши отметки." />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png" />
-  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@500;600;700;800&family=Onest:wght@400;500;600;700;800;900&family=Rubik:ital,wght@0,700;0,800;0,900;1,800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
-  <!-- Официальный JS API Яндекс.Карт 2.1 (русский язык) -->
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem("wheee_theme") || "auto";
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.setAttribute("data-theme", theme);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <div class="offline-banner" id="offlineBanner">
-    Офлайн-режим — отметки и маршруты сохраняются на телефоне
+  <div id="offlineBanner" class="offline-banner" role="status" hidden>
+    <span class="offline-banner-icon" data-icon="i-wifi-off"></span>
+    <span>
+      <strong>Нет сети — всё работает</strong>
+      <span>Маршруты собираем из сохранённой базы. Отметки отправим, когда появится интернет.</span>
+    </span>
   </div>
-  <div class="app-container">
-    <!-- Чистая шапка: слева только иконка и логотип Wheee!ekend, справа — инфо (i), тема и сэндвич-меню -->
-    <header class="app-header">
-      <div class="brand-block" id="logoHomeBtn">
-        <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none" aria-hidden="true">
-          <rect width="88" height="88" rx="21" fill="#181D24"/>
-          <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
-          <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-          <g transform="rotate(15 62 43)">
-            <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
-            <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
-            <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
-            <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
-          </g>
-        </svg>
 
-        <span class="wm-hybrid">
-          Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
-        </span>
-      </div>
-
-      <div class="header-actions">
-        <!-- Кнопка «i» (Информация об источниках и погоде) -->
-        <button type="button" class="icon-circle-btn" id="openInfoModalBtn" title="О приложении и источниках данных" aria-label="Информация">
-          i
-        </button>
-
-        <!-- Переключатель Тёмной / Светлой темы в правом верхнем углу -->
-        <button type="button" class="icon-circle-btn" id="themeToggleBtn" title="Переключить тему" aria-label="Переключить тему">
-          <svg id="themeIconSun" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <svg id="themeIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-
-        <!-- Сэндвич-меню -->
-        <button type="button" class="icon-circle-btn burger-btn" id="openBurgerMenuBtn" title="Меню разделов" aria-label="Меню">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <line x1="4" y1="7" x2="20" y2="7"></line>
-            <line x1="4" y1="12" x2="20" y2="12"></line>
-            <line x1="4" y1="17" x2="20" y2="17"></line>
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- Компактная строка «Дообучить» над контентом (строго в одну линию, кнопка справа) -->
-    <div class="teach-slim-bar" id="teachSlimBar">
-      <div class="tsb-left">
-        <span class="tsb-dot"></span>
-        <span class="tsb-text">В памяти <strong id="headerVisitedCount">0</strong> мест</span>
-      </div>
-      <button type="button" class="tsb-action-btn" id="openSwipeOverlayBtn">
-        Дообучить свайпами →
+  <div id="appRoot" class="app-column">
+    <main id="screenRoot" class="screen-root"></main>
+    <nav id="tabBar" class="tabbar" aria-label="Основная навигация" hidden>
+      <button type="button" class="tabbar-item" data-tab="walks">
+        <span data-icon="i-walks"></span><span>Прогулки</span>
       </button>
-    </div>
-
-    <!-- ==================== ЭКРАН 1: СВАЙПЕР КАЛИБРОВКИ (ПРИ ПЕРВОМ ВХОДЕ ИЛИ ПО КНОПКЕ ДООБУЧИТЬ) ==================== -->
-    <section id="onboardingSwipeScreen" class="swipe-screen hidden">
-      <div class="swipe-screen-inner">
-        <div class="swipe-top-bar">
-          <div>
-            <span class="eyebrow-tag">Калибровка вкуса</span>
-            <h2 class="swipe-heading">Где ты уже был?</h2>
-          </div>
-          <button type="button" class="skip-to-routes-btn" id="finishOnboardingBtn">
-            К маршрутам →
-          </button>
-        </div>
-
-        <p class="swipe-instructions">
-          Отмечай знакомые места, чтобы мы исключили их из прогулок и оставили только новые точки.
-        </p>
-
-        <div class="swipe-progress" id="swipeProgress">
-          <div class="swipe-progress-track">
-            <span class="swipe-progress-fill" id="swipeProgressFill"></span>
-          </div>
-          <span class="swipe-progress-label" id="swipeProgressLabel">1 из 10</span>
-        </div>
-
-        <!-- Стек карточек для свайпа -->
-        <div class="tinder-stage" id="tinderStage">
-          <!-- Карточка рендерится из JS -->
-        </div>
-
-        <!-- Чистые однострочные кнопки управления свайпом -->
-        <div class="tinder-controls">
-          <button type="button" class="tinder-action-btn btn-not-visited" id="swipeLeftBtn">
-            Не был здесь
-          </button>
-
-          <button type="button" class="tinder-action-btn btn-visited" id="swipeRightBtn">
-            Уже был
-          </button>
-        </div>
-
-        <!-- Быстрое текстовое дообучение прямо под свайпером -->
-        <div class="swipe-text-teach-box">
-          <div class="quick-tell-head">
-            <span class="quick-tell-title">Или напишите списком</span>
-            <span class="quick-tell-example">Например: ГЭС-2, парк Горького, Музей музыки</span>
-          </div>
-          <form id="quickTellForm" class="quick-tell-form">
-            <input
-              type="text"
-              id="quickTellInput"
-              placeholder="ГЭС-2, парк Горького, Музей музыки"
-              autocomplete="off"
-            />
-            <button type="submit">Добавить</button>
-          </form>
-          <div id="quickTellFeedback" class="quick-tell-feedback hidden"></div>
-        </div>
-
-        <div class="swipe-bottom-cta">
-          <button type="button" class="primary-cta-wide primary-cta-hero" id="goMainRoutesBigBtn">
-            Показать три персональных маршрута
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== ЭКРАН 2: ГЛАВНЫЙ ЭКРАН (ТОЛЬКО МАРШРУТ И НАСТРОЙКА) ==================== -->
-    <main id="mainWalkScreen" class="main-walk-screen">
-      <!-- Блок настройки прогулки -->
-      <section class="walk-builder-card">
-        <div class="builder-header">
-          <div>
-            <span class="eyebrow-tag">Настройка прогулки</span>
-            <h1 class="builder-title">Куда пойдём сегодня?</h1>
-          </div>
-          <button type="button" class="reload-routes-btn" id="reloadRoutesTopBtn">
-            Пересобрать маршруты
-          </button>
-        </div>
-
-        <!-- 1. Фокус прогулки -->
-        <div class="builder-row">
-          <label class="builder-label">Фокус и настроение</label>
-          <div class="pill-selector" id="focusPills">
-            <button type="button" class="choice-pill active" data-focus="mix">
-              Микс: дворы + выставка + парк
-            </button>
-            <button type="button" class="choice-pill" data-focus="courtyard">
-              Тайные дворы и архитектура
-            </button>
-            <button type="button" class="choice-pill" data-focus="exhibition">
-              Актуальные выставки и музеи
-            </button>
-            <button type="button" class="choice-pill" data-focus="nature">
-              Парки, усадьбы и экотропы
-            </button>
-            <button type="button" class="choice-pill" data-focus="suburb">
-              Выезд в Подмосковье
-            </button>
-          </div>
-        </div>
-
-        <!-- 2. Длительность и Район -->
-        <div class="builder-grid-2">
-          <div class="builder-row">
-            <label class="builder-label">Время на прогулку</label>
-            <div class="duration-tabs" id="durationPills">
-              <button type="button" class="dur-tab" data-duration="short">
-                <strong>1,5 часа</strong>
-                <span>3 шага</span>
-              </button>
-              <button type="button" class="dur-tab active" data-duration="medium">
-                <strong>2,5 часа</strong>
-                <span>4 шага</span>
-              </button>
-              <button type="button" class="dur-tab" data-duration="long">
-                <strong>4 часа</strong>
-                <span>5 шагов</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="builder-row">
-            <label class="builder-label">Район Москвы или Подмосковья</label>
-            <select id="clusterDropdown" class="editorial-select" aria-label="Район прогулки">
-              <option value="any">Любой район (3 разных района на выбор)</option>
-            </select>
-            <label class="new-ex-checkbox">
-              <input type="checkbox" id="allowVisitedNewEx" checked />
-              <span>Звать в знакомые музеи, если там идёт <strong>новая выставка</strong></span>
-            </label>
-          </div>
-        </div>
-      </section>
-
-      <!-- Переключатель 3 предложенных маршрутов (Карусель с выглядывающей карточкой) -->
-      <section class="routes-showcase" id="routesShowcaseSection">
-        <div class="carousel-section-top">
-          <div class="cst-left">
-            <span class="eyebrow-tag">Выбери вариант прогулки</span>
-            <h2 class="carousel-section-title">3 маршрута на выбор</h2>
-          </div>
-          <div class="carousel-controls-right">
-            <div class="carousel-dots" id="routesCarouselDots"></div>
-            <div class="carousel-arrows">
-              <button type="button" class="carousel-nav-btn" id="carouselPrevBtn" aria-label="Предыдущий маршрут">←</button>
-              <button type="button" class="carousel-nav-btn" id="carouselNextBtn" aria-label="Следующий маршрут">→</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="routes-carousel-viewport" id="routesThreeTabs"></div>
-
-        <!-- Единый блок выбранного маршрута: Обложка -> Карта -> Связанная цепь шагов 1-2-3-4 -->
-        <div id="selectedRouteView" class="selected-route-view"></div>
-      </section>
-    </main>
-
-    <!-- ==================== ЭКРАН 3 (РАЗДЕЛ ИЗ СЭНДВИЧ-МЕНЮ): МОЯ БАЗА ОТМЕЧЕННЫХ МЕСТ ==================== -->
-    <section id="memorySectionScreen" class="memory-section-screen hidden">
-      <div class="memory-drawer-card">
-        <div class="drawer-header-row">
-          <div>
-            <span class="eyebrow-tag">Раздел памяти</span>
-            <h2 class="drawer-title">Мои посещённые места</h2>
-            <p class="drawer-subtitle">Отмечено «Уже был»: <strong id="drawerVisitedCount">0</strong> из <span id="drawerTotalCount">0</span></p>
-          </div>
-        </div>
-
-        <p class="drawer-hint">
-          Эти места исключены из обычных прогулок. Нажми на крестик рядом с местом, если хочешь снова включить его в маршруты.
-        </p>
-
-        <div id="visitedChipsContainer" class="visited-chips-list"></div>
-
-        <div class="memory-actions-footer">
-          <button type="button" class="primary-cta-wide memory-teach-btn" id="openSwipeFromBottomBtn">
-            Дообучить свайпами
-          </button>
-          <button type="button" class="outline-btn memory-back-btn" id="backToRoutesFromMemoryBtn">
-            Назад к маршруту
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== ЭКРАН «ИЗБРАННЫЕ МАРШРУТЫ» (ИЗ СЭНДВИЧ-МЕНЮ) ==================== -->
-    <section id="savedRoutesScreen" class="saved-routes-screen hidden">
-      <div class="saved-routes-card" id="savedRoutesListCard">
-        <div class="drawer-header-row">
-          <div>
-            <span class="eyebrow-tag">Коллекция</span>
-            <h2 class="drawer-title">Избранные маршруты</h2>
-            <p class="drawer-subtitle">Сохранено: <strong id="savedRoutesCount">0</strong></p>
-          </div>
-        </div>
-
-        <p class="drawer-hint">
-          Маршруты сохраняются вместе с шагами, картой и описаниями. Нажми на сердечко, чтобы убрать маршрут из избранного.
-        </p>
-
-        <div id="savedRoutesList" class="saved-routes-list"></div>
-
-        <div class="memory-actions-footer">
-          <button type="button" class="outline-btn memory-back-btn" id="backToRoutesFromSavedBtn">
-            Назад к маршрутам
-          </button>
-        </div>
-      </div>
-
-      <div id="savedRouteDetail" class="saved-route-detail hidden"></div>
-    </section>
-
-    <!-- Аккуратный скромный футер в самом низу -->
-    <footer class="app-minimal-footer">
-      <button type="button" class="footer-subtle-link" id="openIphoneBtn">
-        Открыть на iPhone (QR-код)
+      <button type="button" class="tabbar-item" data-tab="favorites">
+        <span data-icon="i-heart"></span><span>Избранное</span>
       </button>
-    </footer>
+      <button type="button" class="tabbar-item" data-tab="memory">
+        <span data-icon="i-memory"></span><span>Память</span>
+      </button>
+      <button type="button" class="tabbar-item" data-tab="more">
+        <span data-icon="i-menu"></span><span>Ещё</span>
+      </button>
+    </nav>
   </div>
 
-  <!-- ==================== ВЫЕЗЖАЮЩЕЕ СПРАВА НА ВЕСЬ ЭКРАН СЭНДВИЧ-МЕНЮ ==================== -->
-  <div class="burger-drawer-backdrop" id="burgerMenuModal" aria-hidden="true" inert>
-    <aside class="burger-drawer-panel">
-      <div class="burger-sheet-top">
-        <div class="brand-block" style="pointer-events:none;">
-          <svg class="brand-app-icon" style="width:40px;height:40px;border-radius:11px;" viewBox="0 0 88 88" fill="none">
-            <rect width="88" height="88" rx="21" fill="#181D24"/>
-            <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
-            <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
-            <g transform="rotate(15 62 43)">
-              <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
-              <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
-              <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
-              <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
-            </g>
-          </svg>
-          <span class="wm-hybrid" style="font-size:19px;">
-            Wh<span class="eee-track">eee</span><span class="bang-hybrid" style="width:21px;height:27px;font-size:16px;">!</span>ekend
-          </span>
-        </div>
-        <button type="button" class="close-btn" id="closeBurgerMenuBtn" aria-label="Закрыть меню">✕</button>
-      </div>
-
-      <!-- Выделенная плашка «Дообучить» прямо сверху в сэндвич-меню -->
-      <div class="burger-teach-card">
-        <div>
-          <span class="eyebrow-tag">Калибровка вкуса</span>
-          <h3>Дообучить систему свайпами</h3>
-          <p>Отмечено «Уже был»: <strong id="burgerVisitedCount">0</strong> мест</p>
-        </div>
-        <button type="button" class="primary-cta-wide" id="burgerOpenSwipeBtn" style="height:48px; font-size:15px;">
-          Открыть карточки свайпа
-        </button>
-      </div>
-
-      <!-- Разделы навигации -->
-      <nav class="burger-nav-list">
-        <button type="button" class="burger-nav-item" id="navToAccountBtn">
-          <span>Аккаунт: <strong id="burgerAccountStatus">вход не выполнен</strong></span>
-          <span class="nav-arrow">→</span>
-        </button>
-        <button type="button" class="burger-nav-item" id="navToRoutesBtn">
-          <span>Маршруты прогулки</span>
-          <span class="nav-arrow">→</span>
-        </button>
-        <button type="button" class="burger-nav-item" id="navToSavedRoutesBtn">
-          <span>Избранные маршруты: <strong id="burgerSavedCount">0</strong></span>
-          <span class="nav-arrow">→</span>
-        </button>
-        <button type="button" class="burger-nav-item" id="navToMemoryBtn">
-          <span>Мои посещённые места (база «Уже был»)</span>
-          <span class="nav-arrow">→</span>
-        </button>
-        <button type="button" class="burger-nav-item" id="navToInfoBtn">
-          <span>Источники данных и синхронизация</span>
-          <span class="nav-arrow">→</span>
-        </button>
-        <button type="button" class="burger-nav-item" id="burgerToggleThemeBtn">
-          <span>Тема оформления: <strong id="burgerThemeStatus">Светлая</strong></span>
-          <span class="nav-arrow">Сменить</span>
-        </button>
-      </nav>
-
-      <div class="burger-sheet-footer">
-        Wheee!ekend • Персональные маршруты по Москве и МО
-      </div>
-    </aside>
-  </div>
-
-  <!-- ==================== МОДАЛКА «i» (О ПРИЛОЖЕНИИ И ИСТОЧНИКАХ) ==================== -->
-  <div class="modal-overlay hidden" id="infoModal">
-    <div class="modal-box">
-      <div class="modal-top">
-        <h3>Источники данных и погода</h3>
-        <button type="button" class="close-btn" id="closeInfoModalBtn">✕</button>
-      </div>
-      <div class="info-modal-content">
-        <div class="info-weather-row">
-          <span>Погода сейчас:</span>
-          <strong id="weatherChip">Москва</strong>
-        </div>
-
-        <p class="modal-p" id="sourcesSubtitle">
-          Приложение собирает места, выставки и маршруты из открытых городских источников. Вот полный список:
-        </p>
-
-        <ul class="sources-list">
-          <li><strong>«Узнай Москву»</strong><span>um.mos.ru — описания мест, дворов, усадеб и палат</span></li>
-          <li><strong>KudaGo</strong><span>kudago.com — афиша выставок, событий и музейных программ</span></li>
-          <li><strong>Официальные сайты музеев</strong><span>актуальные выставки, билеты и часы работы</span></li>
-          <li><strong>Wikimedia Commons</strong><span>фотографии мест и галереи</span></li>
-          <li><strong>Яндекс.Карты</strong><span>пешая маршрутизация и карта прогулки</span></li>
-          <li><strong>mos.ru</strong><span>городские парки, музеи и культурные площадки</span></li>
-          <li><strong>OpenStreetMap</strong><span>координаты и ориентиры на местности</span></li>
-        </ul>
-
-        <p class="sources-note">
-          Названия источников намеренно не показываются на карточках и в шагах маршрута — только здесь.
-        </p>
-
-        <button type="button" class="outline-btn" id="syncRussianSourcesBtn" style="width:100%; padding:12px;">
-          Обновить базу мест и афиш
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== МОДАЛКА «АККАУНТ» (ВХОД, РЕГИСТРАЦИЯ, СИНХРОНИЗАЦИЯ) ==================== -->
-  <div class="modal-overlay hidden" id="accountModal">
-    <div class="modal-box account-box">
-      <div class="modal-top">
-        <h3 id="accountModalTitle">Аккаунт</h3>
-        <button type="button" class="close-btn" id="closeAccountModalBtn" aria-label="Закрыть">✕</button>
-      </div>
-
-      <!-- Не выполнен вход -->
-      <div id="accountAuthView">
-        <p class="modal-p">
-          Войдите, чтобы отметки сохранялись в облаке и открывались на любом устройстве.
-          Без входа всё работает как раньше — но только на этом телефоне.
-        </p>
-
-        <div class="account-tabs" role="tablist" aria-label="Вход или регистрация">
-          <button type="button" class="account-tab active" data-account-tab="signin" role="tab" aria-selected="true">
-            Вход
-          </button>
-          <button type="button" class="account-tab" data-account-tab="signup" role="tab" aria-selected="false">
-            Регистрация
-          </button>
-        </div>
-
-        <form id="accountForm" class="account-form" novalidate>
-          <label class="account-field">
-            <span>Почта</span>
-            <input type="email" id="accountEmail" autocomplete="email" inputmode="email"
-                   placeholder="you@example.com" required />
-          </label>
-
-          <label class="account-field">
-            <span>Пароль</span>
-            <input type="password" id="accountPassword" autocomplete="current-password"
-                   placeholder="Минимум 6 символов" required />
-          </label>
-
-          <label class="account-field hidden" id="accountInviteField">
-            <span>Код приглашения</span>
-            <input type="text" id="accountInvite" autocomplete="off" autocapitalize="off"
-                   spellcheck="false" placeholder="например, wheee-2026" />
-          </label>
-
-          <p class="account-message hidden" id="accountMessage" role="status" aria-live="polite"></p>
-
-          <button type="submit" class="primary-cta-wide" id="accountSubmitBtn">Войти</button>
-        </form>
-
-        <div class="account-links">
-          <button type="button" class="account-link-btn" id="accountResetBtn">Забыли пароль?</button>
-        </div>
-
-        <p class="account-hint hidden" id="accountNotConfigured">
-          Аккаунты ещё не подключены. Приложение работает на памяти телефона.
-        </p>
-      </div>
-
-      <!-- Вход выполнен -->
-      <div id="accountProfileView" class="hidden">
-        <p class="account-email" id="accountEmailLabel"></p>
-        <p class="account-sync-status" id="accountSyncStatus">—</p>
-
-        <button type="button" class="primary-cta-wide" id="accountSyncNowBtn">Синхронизировать сейчас</button>
-        <button type="button" class="outline-btn account-signout-btn" id="accountSignOutBtn">Выйти из аккаунта</button>
-
-        <p class="account-hint">
-          Память хранится и на телефоне, и в облаке. Если пропадёт интернет,
-          отметки продолжат сохраняться локально и досинхронизируются сами.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== МОДАЛКА: ОТКРЫТЬ НА IPHONE ==================== -->
-  <div class="modal-overlay hidden" id="iphoneModal">
-    <div class="modal-box">
-      <div class="modal-top">
-        <h3>Открыть на iPhone</h3>
-        <button type="button" class="close-btn" id="closeIphoneModal">✕</button>
-      </div>
-      <p class="modal-p">
-        Наведи камеру iPhone на QR-код (в одной Wi‑Fi сети с Mac) и в Safari нажми <strong>«Поделиться» → «На экран Домой»</strong>:
-      </p>
-      <div class="qr-card">
-        <img id="qrImage" width="180" height="180" alt="QR" />
-        <a id="iphoneDirectLink" href="#" target="_blank">http://localhost:3456</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==================== КАРТОЧКА МЕСТА (ОТКРЫВАЕТСЯ ИЗ СВАЙПОВ И МАРШРУТА) ==================== -->
-  <div class="place-detail-overlay hidden" id="placeDetailModal" role="dialog" aria-modal="true" aria-label="Карточка места">
-    <div class="place-detail-sheet">
-      <button type="button" class="place-detail-close" id="closePlaceDetailBtn" aria-label="Закрыть карточку места">✕</button>
-      <div class="place-detail-scroll" id="placeDetailScroll">
-        <!-- Содержимое рендерится из JS -->
-      </div>
-    </div>
-  </div>
-
-  <div id="toastBar" class="toast-bar hidden"></div>
+  <div id="sheetRoot"></div>
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
 
   <script src="firebase-config.js"></script>
   <script src="cloud.js"></script>
   <script src="offline_engine.js"></script>
   <script src="app.js"></script>
+  <script src="screens.js"></script>
 </body>
 </html>

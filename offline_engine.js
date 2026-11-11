@@ -63,6 +63,14 @@
   }
 
   function evaluatePlaceCandidate(place, memory) {
+    if (memory.dislikedPlaces && memory.dislikedPlaces[place.id]) {
+      return {
+        eligible: false,
+        reasonType: "disliked",
+        badge: "Не моё",
+        activeExhibition: null
+      };
+    }
     const visited = Boolean(memory.visitedPlaces && memory.visitedPlaces[place.id]);
     const record = memory.visitedPlaces && memory.visitedPlaces[place.id];
     const unseen = (place.exhibitions || []).filter(
@@ -326,6 +334,7 @@
         let score = 10 + (p.quizPriority || 6);
         if (memory.unvisitedChecked && memory.unvisitedChecked[p.id]) score += 12;
         if (memory.likedPlaces && memory.likedPlaces[p.id]) score += 18;
+        if (memory.wantedPlaces && memory.wantedPlaces[p.id]) score += 18;
         if (ev.reasonType === "new_place") score += 6;
         if (focus === "courtyard" && p.category === "courtyard") score += 16;
         if (focus === "exhibition" && (p.category === "exhibition" || p.category === "museum" || ev.activeExhibition)) score += 17;
