@@ -39,6 +39,10 @@
   --tint-wow: #FFE7DF;
   --grabber: #CFCBC0;
   --map-bg: #ECE8DD;
+  --map-water: #BFD8E6;
+  --sun: #E2911B;
+  --overlay-photo: rgba(18,22,28,.62);
+  --overlay-photo-soft: rgba(18,22,28,.35);
 
   /* Радиусы */
   --r-chip: 999px;
@@ -97,7 +101,7 @@
     --text-inverse: #12161C; --text-inverse-muted: #5E636B;
     --route-text: #4BD48F; --wow-text: #FF8A66;
     --tint-route: #173326; --tint-route-text: #7BE3AE; --tint-wow: #3A1E14;
-    --grabber: #4C5562; --map-bg: #161B22;
+    --grabber: #4C5562; --map-bg: #161B22; --map-water: #22303C;
     color-scheme: dark;
   }
 }
@@ -108,7 +112,7 @@
   --text-inverse: #12161C; --text-inverse-muted: #5E636B;
   --route-text: #4BD48F; --wow-text: #FF8A66;
   --tint-route: #173326; --tint-route-text: #7BE3AE; --tint-wow: #3A1E14;
-  --grabber: #4C5562; --map-bg: #161B22;
+  --grabber: #4C5562; --map-bg: #161B22; --map-water: #22303C;
   color-scheme: dark;
 }
 
@@ -117,6 +121,7 @@
 .theme-ink {
   --bg: #12161C; --surface: #1B2129; --surface-raised: #1E242D; --line: #2C3440;
   --text: #F4F2EC; --text-body: #DADDE2; --text-muted: #A9AEB6;
+  --tint-route: #173326; --tint-route-text: #7BE3AE; --tint-wow: #3A1E14; --wow-text: #FF8A66;
   color-scheme: dark;
 }
 
