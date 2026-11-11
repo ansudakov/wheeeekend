@@ -772,3 +772,7 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .walk-photo-text h1 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .walk-photo-text h1.walk-title-small { font-size: 22px; line-height: 1.15; }
 .map-metro-label { fill: var(--text-muted); font-family: var(--font-ui); font-size: 11px; font-weight: 700; }
+.onboarding-brand { display: flex; align-items: center; gap: 10px; width: auto; }
+.onboarding-app-icon { width: 44px; height: 44px; border-radius: 12px; }
+.onboarding-wordmark { width: 168px; display: block; }
+.onboarding-wordmark .wordmark { width: 100%; }

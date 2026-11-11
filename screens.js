@@ -113,7 +113,7 @@
     const cards = ["starosadsky_lutheran", "ges2_house", "zotov_center"].map(place).filter(Boolean);
     $("#screenRoot").innerHTML = `
       <section class="screen onboarding theme-ink">
-        <div class="onboarding-brand">${wordmark(true)}</div>
+        <div class="onboarding-brand"><img class="onboarding-app-icon" src="icon.svg" alt=""><span class="onboarding-wordmark">${wordmark(true)}</span></div>
         <div class="onboarding-stack">
           ${cards.map((p, i) => `
             <div class="onboarding-card onboarding-card-${i + 1}">
