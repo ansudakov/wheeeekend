@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wheee!ekend — Чистый современный UI + Светлая и Тёмная темы</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Подключаем шрифты + встроенный base64 Unbounded для логотипа Wheee!ekend (чтобы никогда не слетал!) -->
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Manrope:wght@500;600;700;800&family=Onest:wght@400;500;600;700;800;900&family=Rubik:ital,wght@0,700;0,800;0,900;1,800&family=Unbounded:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'UnboundedLogo';
+      font-style: normal;
+      font-weight: 800 900;
+      font-display: block;
+      src: url(data:font/woff2;base64,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) format('woff2');
+    }
+    /* ==========================================================================
+       ТОКЕНЫ: ЧИСТЫЙ СПОКОЙНЫЙ ИНТЕРФЕЙС
+       Главный акцент (CTA): Кораллово-оранжевый (#FF6238)
+       Выделяющий цвет: Изумрудно-зелёный (#269A66 / #48C78E)
+       ========================================================================== */
+    .theme-light {
+      --bg-app: #F5F6F4;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #ECEDE9;
+      --text-primary: #141816;
+      --text-secondary: #5A635E;
+      --text-muted: #8A948E;
+      --border-color: #E4E7E3;
+      --border-strong: #CFD5D0;
+      --accent-orange: #FF5C28;
+      --accent-orange-soft: #FFF1EC;
+      --highlight-green: #249263;
+      --highlight-green-soft: #E8F5EE;
+      --card-shadow: 0 10px 30px rgba(20, 24, 22, 0.05);
+      --wordmark-main: #141816;
+      --wordmark-eee: #249263;
+      --map-bg: #EBF0EC;
+      --map-grid: rgba(36, 146, 99, 0.06);
+    }
+
+    .theme-dark {
+      --bg-app: #121519;
+      --bg-surface: #1A1E24;
+      --bg-subtle: #232830;
+      --text-primary: #F3F5F7;
+      --text-secondary: #98A2B0;
+      --text-muted: #66707F;
+      --border-color: #262C35;
+      --border-strong: #343C47;
+      --accent-orange: #FF6238;
+      --accent-orange-soft: rgba(255, 98, 56, 0.14);
+      --highlight-green: #48C78E;
+      --highlight-green-soft: rgba(72, 199, 142, 0.13);
+      --card-shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
+      --wordmark-main: #F5F7FA;
+      --wordmark-eee: #48C78E;
+      --map-bg: #161B21;
+      --map-grid: rgba(72, 199, 142, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: #0C0E12;
+      color: #F3F5F7;
+      font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.45;
+      padding-bottom: 80px;
+    }
+
+    /* ВЕРХНЯЯ ПАНЕЛЬ СТЕНДА */
+    .studio-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(12, 14, 18, 0.9);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .sh-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .sh-badge {
+      background: rgba(255, 98, 56, 0.16);
+      color: #FF7B57;
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      padding: 5px 12px;
+      border-radius: 999px;
+    }
+
+    .sh-title {
+      font-size: 16.5px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .mode-group {
+      display: flex;
+      background: #171B22;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 4px;
+    }
+
+    .mode-btn {
+      background: transparent;
+      color: #98A2B0;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .mode-btn.active {
+      background: #F3F5F7;
+      color: #0C0E12;
+    }
+
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 26px 24px;
+    }
+
+    /* ==================== ПАСПОРТ БРЕНДА И ТИПОГРАФИКИ ==================== */
+    .brand-passport {
+      background: #151920;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 28px;
+    }
+
+    @media (max-width: 1020px) {
+      .brand-passport {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .bp-logos {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: #1C212A;
+      padding: 16px 24px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    /* ==================== УТВЕРЖДЁННЫЙ ЛОГОТИП WHEEE!EKEND ==================== */
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-app-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .wm-hybrid {
+      font-family: 'UnboundedLogo', 'Unbounded', sans-serif;
+      font-weight: 800;
+      font-size: 24px;
+      letter-spacing: -0.04em;
+      color: var(--wordmark-main);
+      display: inline-flex;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .wm-hybrid .eee-track {
+      position: relative;
+      display: inline-block;
+      margin: 0 1px;
+      color: var(--wordmark-eee);
+    }
+
+    .wm-hybrid .eee-track::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 2px;
+      bottom: -5px;
+      height: 3.5px;
+      background: currentColor;
+      border-radius: 99px;
+    }
+
+    .wm-hybrid .bang-hybrid {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 34px;
+      margin: 0 4px;
+      background: #FF6238;
+      color: #FFFFFF;
+      border: 2.2px solid #FFFFFF;
+      border-radius: 9px;
+      font-size: 20px;
+      font-weight: 900;
+      transform: rotate(7deg) translateY(-1px);
+      box-shadow: 3px 3px 0px #0E1217;
+      flex-shrink: 0;
+    }
+
+    .theme-light .wm-hybrid .bang-hybrid {
+      box-shadow: 2.5px 3px 0px #141816;
+    }
+
+    /* Пропорции логотипа в шапке мобильного экрана */
+    .mockup-topbar .wm-hybrid {
+      font-size: 19.5px;
+    }
+
+    .mockup-topbar .wm-hybrid .bang-hybrid {
+      width: 22px;
+      height: 29px;
+      font-size: 17px;
+      border-radius: 7.5px;
+      margin: 0 3px;
+      border-width: 2px;
+      box-shadow: 2.5px 2.5px 0px #0E1217;
+    }
+
+    .bp-info h2 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .bp-info p {
+      font-size: 14px;
+      color: #98A2B0;
+      line-height: 1.5;
+    }
+
+    .bp-pills {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .bp-pill {
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* ==================== СЕТКА 3 ЭКРАНОВ ==================== */
+    .story-section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 26px 0 14px;
+      padding: 0 4px;
+    }
+
+    .story-section-label h3 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-tag {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+    }
+
+    .screens-3-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 1200px) {
+      .screens-3-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* КОНТЕЙНЕР ЭКРАНА */
+    .app-screen-mockup {
+      background: var(--bg-app);
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-color);
+      border-radius: 32px;
+      padding: 20px;
+      box-shadow: 0 24px 54px rgba(0, 0, 0, 0.32);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ШАПКА ЭКРАНА */
+    .mockup-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .visited-pill {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+
+    .visited-pill strong {
+      color: var(--highlight-green);
+      font-weight: 800;
+    }
+
+    /* ЗАГОЛОВОК ЭКРАНА */
+    .screen-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .screen-title {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+    }
+
+    .screen-counter {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* ==================== ЭКРАН 1: ЧИСТАЯ КАРТОЧКА СВАЙПА (ФОТО В КРАЙ БЕЗ ОТСТУПОВ) ==================== */
+    .swipe-card-clean {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      cursor: pointer;
+      transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .swipe-card-clean.swiping-left {
+      transform: translateX(-16px) rotate(-2.5deg);
+    }
+
+    .swipe-card-clean.swiping-right {
+      transform: translateX(16px) rotate(2.5deg);
+    }
+
+    /* Фотография в край карточки без лишних рамок */
+    .scc-photo {
+      position: relative;
+      height: 215px;
+      width: 100%;
+      overflow: hidden;
+      background: var(--bg-subtle);
+    }
+
+    .scc-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .scc-district-tag {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(18, 21, 25, 0.72);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 999px;
+    }
+
+    .scc-body {
+      padding: 18px 20px 20px;
+    }
+
+    .scc-title {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .scc-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      margin-bottom: 14px;
+    }
+
+    .scc-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    /* Крупные современные кнопки в одну строку без мелкого подтекста и без пальцев */
+    .clean-btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .clean-action-btn {
+      height: 50px;
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.12s ease, opacity 0.15s ease;
+    }
+
+    .clean-action-btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-secondary-surface {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .btn-green-highlight {
+      background: var(--highlight-green);
+      border: 1.5px solid var(--highlight-green);
+      color: #FFFFFF;
+    }
+
+    .theme-dark .btn-green-highlight {
+      color: #121519;
+    }
+
+    /* Быстрый ввод списком */
+    .clean-input-row {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 6px 6px 6px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .clean-input-row span.placeholder {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .clean-input-row button {
+      background: var(--bg-subtle);
+      color: var(--text-primary);
+      border: none;
+      border-radius: 10px;
+      padding: 8px 13px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* ==================== ЭКРАН 2: СПОКОЙНЫЙ КОНСТРУКТОР И 3 МАРШРУТА ==================== */
+    .filter-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 22px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .filter-group-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .clean-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .clean-chip {
+      background: var(--bg-app);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 9px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .clean-chip.active {
+      background: var(--highlight-green-soft);
+      border-color: var(--highlight-green);
+      color: var(--highlight-green);
+      font-weight: 700;
+    }
+
+    .duration-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .duration-pill {
+      background: var(--bg-app);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .duration-pill.active {
+      background: var(--text-primary);
+      border-color: var(--text-primary);
+      color: var(--bg-surface);
+    }
+
+    .routes-list-clean {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .route-card-clean {
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      border-radius: 18px;
+      padding: 15px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .route-card-clean.active {
+      border-color: var(--highlight-green);
+      box-shadow: var(--card-shadow);
+    }
+
+    .rcc-meta-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .rcc-district {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--highlight-green);
+    }
+
+    .rcc-dot {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    .rcc-time {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .rcc-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .rcc-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .rcc-chevron {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--bg-app);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .route-card-clean.active .rcc-chevron {
+      background: var(--highlight-green);
+      color: #FFFFFF;
+    }
+
+    .theme-dark .route-card-clean.active .rcc-chevron {
+      color: #121519;
+    }
+
+    /* ==================== ЭКРАН 3: КАРТА И ТОЧКИ + ОРАНЖЕВЫЙ CTA ==================== */
+    .map-clean-box {
+      background: var(--map-bg);
+      background-image:
+        linear-gradient(var(--map-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--map-grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      height: 148px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-clean-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .map-clean-badge {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 11px;
+      border-radius: 999px;
+    }
+
+    .stops-clean-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stop-row-clean {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .src-photo {
+      width: 60px;
+      height: 60px;
+      border-radius: 13px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .src-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .src-num {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-orange);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .src-text h5 {
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .src-text p {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+    }
+
+    .src-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--highlight-green);
+      background: var(--highlight-green-soft);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .src-tag.orange {
+      color: var(--accent-orange);
+      background: var(--accent-orange-soft);
+    }
+
+    .src-replace-btn {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 11px;
+      cursor: pointer;
+    }
+
+    /* Главная акцентная кнопка — фирменный оранжевый */
+    .cta-orange-main {
+      width: 100%;
+      height: 52px;
+      background: var(--accent-orange);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 16px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 8px 22px rgba(255, 92, 40, 0.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ -->
+  <header class="studio-header">
+    <div class="sh-left">
+      <span class="sh-badge">Чистый UI • Manrope + Unbounded</span>
+      <div class="sh-title">Wheee!ekend — Спокойный современный интерфейс без лишнего шума</div>
+    </div>
+
+    <div class="mode-group">
+      <button class="mode-btn active" onclick="setThemeView('both', this)">Светлая + Тёмная</button>
+      <button class="mode-btn" onclick="setThemeView('light', this)">Светлая тема</button>
+      <button class="mode-btn" onclick="setThemeView('dark', this)">Тёмная тема</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ПАСПОРТ: ЛОГОТИП, ШРИФТЫ, ЦВЕТА -->
+    <section class="brand-passport">
+      <div class="bp-logos">
+        <!-- Иконка 88x88 -->
+        <svg style="width:84px; height:84px; border-radius:20px; flex-shrink:0;" viewBox="0 0 88 88" fill="none">
+          <rect width="88" height="88" rx="21" fill="#181D24"/>
+          <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+          <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="rotate(15 62 43)">
+            <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+            <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+            <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+            <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+          </g>
+        </svg>
+
+        <div class="theme-dark" style="background:transparent;">
+          <div class="wm-hybrid" style="font-size:25px;">
+            Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+          </div>
+          <div style="font-size:13px; color:#98A2B0; margin-top:10px;">
+            Логотип: <strong>Unbounded 800</strong> • Весь интерфейс: <strong>Manrope</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="bp-info">
+        <h2>Что почистили в интерфейсе:</h2>
+        <p>
+          1. Вместо сухого шрифта поставили <strong>Manrope</strong> — пластичный современный гротеск.<br/>
+          2. Фотография в карточке теперь идёт <strong>в край (без лишних полей)</strong>, убрали эмодзи-пальцы и мелкие двухэтажные подписи в кнопках.<br/>
+          3. Главный акцент действия — <strong>оранжевый</strong> (<code>#FF6238</code>), выделяющий цвет выбора — <strong>зелёный</strong> (<code>#48C78E</code>).
+        </p>
+      </div>
+
+      <div class="bp-pills">
+        <div class="bp-pill" style="background:#FF6238; color:#FFFFFF;">
+          <span style="opacity:0.85;">Главный акцент</span>
+          <strong>#FF6238</strong>
+        </div>
+        <div class="bp-pill" style="background:#48C78E; color:#121519;">
+          <span style="opacity:0.85;">Выделяющий</span>
+          <strong>#48C78E</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         СВЕТЛАЯ ТЕМА (3 ЭКРАНА)
+         ======================================================================= -->
+    <div id="lightThemeBlock">
+      <div class="story-section-label">
+        <h3>
+          <span>Светлая тема</span>
+          <span class="theme-tag" style="background:#E8F5EE; color:#249263;">Дневной режим</span>
+        </h3>
+        <span style="font-size:13px; color:#98A2B0;">1. Свайп мест → 2. Подбор маршрута → 3. Карта и точки</span>
+      </div>
+
+      <div class="screens-3-grid">
+
+        <!-- СВЕТЛЫЙ ЭКРАН 1: СВАЙП -->
+        <div class="app-screen-mockup theme-light">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">Был: <strong id="cnt-light">14</strong></span>
+            </div>
+          </div>
+
+          <div class="screen-head">
+            <h4 class="screen-title">Где ты уже был?</h4>
+            <span class="screen-counter">6 из 10</span>
+          </div>
+
+          <!-- Чистая карточка: фото в край, без лишних отступов -->
+          <div class="swipe-card-clean" id="sc-light" onclick="swipeDemo('light', 'right')">
+            <div class="scc-photo">
+              <span class="scc-district-tag" id="cat-light">Басманный • Архитектура</span>
+              <img id="img-light" src="https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=900&q=80" alt="Place" />
+            </div>
+            <div class="scc-body">
+              <h5 class="scc-title" id="title-light">Палаты Щербаковых в Бакунинском</h5>
+              <p class="scc-desc" id="desc-light">Белокаменные боярские палаты XVII века в тихом дворике, куда редко доходят случайные прохожие.</p>
+              <div class="scc-footer">
+                <span>м. Бауманская • 45 мин</span>
+                <span>Узнай Москву</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Крупные чистые кнопки без мелких подтекстов и без пальцев -->
+          <div class="clean-btn-row">
+            <button class="clean-action-btn btn-secondary-surface" onclick="swipeDemo('light', 'left')">
+              Не был здесь
+            </button>
+            <button class="clean-action-btn btn-green-highlight" onclick="swipeDemo('light', 'right')">
+              Уже был
+            </button>
+          </div>
+
+          <div class="clean-input-row">
+            <span class="placeholder">Или напиши списком: ГЭС-2, Винзавод...</span>
+            <button>Добавить</button>
+          </div>
+        </div>
+
+        <!-- СВЕТЛЫЙ ЭКРАН 2: ПОДБОР МАРШРУТА -->
+        <div class="app-screen-mockup theme-light">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">Был: <strong>14</strong></span>
+            </div>
+          </div>
+
+          <div class="screen-head">
+            <h4 class="screen-title">Куда пойдём сегодня?</h4>
+          </div>
+
+          <div class="filter-panel">
+            <div>
+              <span class="filter-group-label">Фокус прогулки</span>
+              <div class="clean-chips">
+                <span class="clean-chip active">Микс: дворы + парк</span>
+                <span class="clean-chip">Архитектура</span>
+                <span class="clean-chip">Выставки</span>
+                <span class="clean-chip">Природа</span>
+              </div>
+            </div>
+
+            <div>
+              <span class="filter-group-label">Время на прогулку</span>
+              <div class="duration-row">
+                <div class="duration-pill">2 часа</div>
+                <div class="duration-pill active">3.5–4 часа</div>
+                <div class="duration-pill">5–6 часов</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="routes-list-clean">
+            <div class="route-card-clean active">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Басманный</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">3.5 ч • 4.2 км</span>
+                </div>
+                <div class="rcc-title">Тайные палаты и сад Баумана</div>
+                <div class="rcc-sub">3 новые точки по твоему вкусу</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+
+            <div class="route-card-clean">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Хамовники</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">4 ч • 5.1 км</span>
+                </div>
+                <div class="rcc-title">Усадьба Толстого и набережная</div>
+                <div class="rcc-sub">2 новые точки + 1 новая выставка</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+
+            <div class="route-card-clean">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Выезд</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">4.5 ч • 5.8 км</span>
+                </div>
+                <div class="rcc-title">Переделкино: сосны и модернизм</div>
+                <div class="rcc-sub">Писательские дачи и лесная тропа</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- СВЕТЛЫЙ ЭКРАН 3: МАРШРУТ И КАРТА -->
+        <div class="app-screen-mockup theme-light">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">4.2 км</span>
+            </div>
+          </div>
+
+          <div class="map-clean-box">
+            <div class="map-clean-top">
+              <span class="map-clean-badge">Яндекс.Карта</span>
+              <span class="map-clean-badge">3.5 часа пешком</span>
+            </div>
+
+            <svg viewBox="0 0 320 70" style="width:100%; height:70px; overflow:visible;">
+              <path d="M28 50 C85 50, 95 18, 155 22 C215 26, 225 52, 285 20" fill="none" stroke="#249263" stroke-width="3.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+              <circle cx="28" cy="50" r="10" fill="#249263"/>
+              <text x="28" y="54" text-anchor="middle" fill="#FFF" font-size="11" font-weight="800">1</text>
+              <circle cx="155" cy="22" r="10" fill="#249263"/>
+              <text x="155" y="26" text-anchor="middle" fill="#FFF" font-size="11" font-weight="800">2</text>
+              <circle cx="285" cy="20" r="11" fill="#FF5C28"/>
+              <text x="285" y="24" text-anchor="middle" fill="#FFF" font-size="12" font-weight="800">3</text>
+            </svg>
+          </div>
+
+          <div class="stops-clean-list">
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=400&q=80" alt="1" />
+                <span class="src-num">1</span>
+              </div>
+              <div class="src-text">
+                <h5>Сад им. Баумана и грот</h5>
+                <p>12 мин от метро • Парк XVIII в.</p>
+                <span class="src-tag">Новое место</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" alt="2" />
+                <span class="src-num">2</span>
+              </div>
+              <div class="src-text">
+                <h5>Палаты Щербаковых</h5>
+                <p>9 мин пешком • Палаты XVII в.</p>
+                <span class="src-tag">Новое место</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1547448415-e9f5b28e570d?auto=format&fit=crop&w=400&q=80" alt="3" />
+                <span class="src-num">3</span>
+              </div>
+              <div class="src-text">
+                <h5>Елоховская галерея</h5>
+                <p>11 мин пешком • Выставка</p>
+                <span class="src-tag orange">Новая экспозиция</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+          </div>
+
+          <button class="cta-orange-main">Открыть маршрут в Яндекс.Картах</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =======================================================================
+         ТЁМНАЯ ТЕМА (3 ЭКРАНА)
+         ======================================================================= -->
+    <div id="darkThemeBlock">
+      <div class="story-section-label">
+        <h3>
+          <span>Тёмная тема</span>
+          <span class="theme-tag" style="background:rgba(72,199,142,0.14); color:#48C78E;">Вечерний режим</span>
+        </h3>
+        <span style="font-size:13px; color:#98A2B0;">1. Свайп мест → 2. Подбор маршрута → 3. Карта и точки</span>
+      </div>
+
+      <div class="screens-3-grid">
+
+        <!-- ТЁМНЫЙ ЭКРАН 1: СВАЙП -->
+        <div class="app-screen-mockup theme-dark">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">Был: <strong id="cnt-dark">14</strong></span>
+            </div>
+          </div>
+
+          <div class="screen-head">
+            <h4 class="screen-title">Где ты уже был?</h4>
+            <span class="screen-counter">6 из 10</span>
+          </div>
+
+          <div class="swipe-card-clean" id="sc-dark" onclick="swipeDemo('dark', 'right')">
+            <div class="scc-photo">
+              <span class="scc-district-tag" id="cat-dark">Басманный • Архитектура</span>
+              <img id="img-dark" src="https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=900&q=80" alt="Place" />
+            </div>
+            <div class="scc-body">
+              <h5 class="scc-title" id="title-dark">Палаты Щербаковых в Бакунинском</h5>
+              <p class="scc-desc" id="desc-dark">Белокаменные боярские палаты XVII века в тихом дворике, куда редко доходят случайные прохожие.</p>
+              <div class="scc-footer">
+                <span>м. Бауманская • 45 мин</span>
+                <span>Узнай Москву</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="clean-btn-row">
+            <button class="clean-action-btn btn-secondary-surface" onclick="swipeDemo('dark', 'left')">
+              Не был здесь
+            </button>
+            <button class="clean-action-btn btn-green-highlight" onclick="swipeDemo('dark', 'right')">
+              Уже был
+            </button>
+          </div>
+
+          <div class="clean-input-row">
+            <span class="placeholder">Или напиши списком: ГЭС-2, Винзавод...</span>
+            <button>Добавить</button>
+          </div>
+        </div>
+
+        <!-- ТЁМНЫЙ ЭКРАН 2: ПОДБОР МАРШРУТА -->
+        <div class="app-screen-mockup theme-dark">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">Был: <strong>14</strong></span>
+            </div>
+          </div>
+
+          <div class="screen-head">
+            <h4 class="screen-title">Куда пойдём сегодня?</h4>
+          </div>
+
+          <div class="filter-panel">
+            <div>
+              <span class="filter-group-label">Фокус прогулки</span>
+              <div class="clean-chips">
+                <span class="clean-chip active">Микс: дворы + парк</span>
+                <span class="clean-chip">Архитектура</span>
+                <span class="clean-chip">Выставки</span>
+                <span class="clean-chip">Природа</span>
+              </div>
+            </div>
+
+            <div>
+              <span class="filter-group-label">Время на прогулку</span>
+              <div class="duration-row">
+                <div class="duration-pill">2 часа</div>
+                <div class="duration-pill active">3.5–4 часа</div>
+                <div class="duration-pill">5–6 часов</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="routes-list-clean">
+            <div class="route-card-clean active">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Басманный</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">3.5 ч • 4.2 км</span>
+                </div>
+                <div class="rcc-title">Тайные палаты и сад Баумана</div>
+                <div class="rcc-sub">3 новые точки по твоему вкусу</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+
+            <div class="route-card-clean">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Хамовники</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">4 ч • 5.1 км</span>
+                </div>
+                <div class="rcc-title">Усадьба Толстого и набережная</div>
+                <div class="rcc-sub">2 новые точки + 1 новая выставка</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+
+            <div class="route-card-clean">
+              <div>
+                <div class="rcc-meta-top">
+                  <span class="rcc-district">Выезд</span>
+                  <span class="rcc-dot">•</span>
+                  <span class="rcc-time">4.5 ч • 5.8 км</span>
+                </div>
+                <div class="rcc-title">Переделкино: сосны и модернизм</div>
+                <div class="rcc-sub">Писательские дачи и лесная тропа</div>
+              </div>
+              <div class="rcc-chevron">→</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ТЁМНЫЙ ЭКРАН 3: МАРШРУТ И КАРТА -->
+        <div class="app-screen-mockup theme-dark">
+          <div class="mockup-topbar">
+            <div class="brand-lockup">
+              <svg class="brand-app-icon" viewBox="0 0 88 88" fill="none">
+                <rect width="88" height="88" rx="21" fill="#181D24"/>
+                <rect x="2" y="2" width="84" height="84" rx="19" stroke="#2D3644" stroke-width="1.5"/>
+                <path d="M16 25 L28 63 L43 32 L57 63 L69 25" stroke="#48C78E" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+                <g transform="rotate(15 62 43)">
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#0D1015" transform="translate(3 3)"/>
+                  <rect x="51" y="16" width="22" height="54" rx="11" fill="#FF6238" stroke="#F5F7FA" stroke-width="2.5"/>
+                  <rect x="59.2" y="24" width="5.6" height="22" rx="2.8" fill="#FFFFFF"/>
+                  <circle cx="62" cy="56.5" r="3.6" fill="#FFFFFF"/>
+                </g>
+              </svg>
+              <div class="wm-hybrid">
+                Wh<span class="eee-track">eee</span><span class="bang-hybrid">!</span>ekend
+              </div>
+            </div>
+            <div class="topbar-right">
+              <span class="visited-pill">4.2 км</span>
+            </div>
+          </div>
+
+          <div class="map-clean-box">
+            <div class="map-clean-top">
+              <span class="map-clean-badge">Яндекс.Карта</span>
+              <span class="map-clean-badge">3.5 часа пешком</span>
+            </div>
+
+            <svg viewBox="0 0 320 70" style="width:100%; height:70px; overflow:visible;">
+              <path d="M28 50 C85 50, 95 18, 155 22 C215 26, 225 52, 285 20" fill="none" stroke="#48C78E" stroke-width="3.5" stroke-dasharray="6 5" stroke-linecap="round"/>
+              <circle cx="28" cy="50" r="10" fill="#48C78E"/>
+              <text x="28" y="54" text-anchor="middle" fill="#121519" font-size="11" font-weight="800">1</text>
+              <circle cx="155" cy="22" r="10" fill="#48C78E"/>
+              <text x="155" y="26" text-anchor="middle" fill="#121519" font-size="11" font-weight="800">2</text>
+              <circle cx="285" cy="20" r="11" fill="#FF6238"/>
+              <text x="285" y="24" text-anchor="middle" fill="#FFF" font-size="12" font-weight="800">3</text>
+            </svg>
+          </div>
+
+          <div class="stops-clean-list">
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?auto=format&fit=crop&w=400&q=80" alt="1" />
+                <span class="src-num">1</span>
+              </div>
+              <div class="src-text">
+                <h5>Сад им. Баумана и грот</h5>
+                <p>12 мин от метро • Парк XVIII в.</p>
+                <span class="src-tag">Новое место</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=400&q=80" alt="2" />
+                <span class="src-num">2</span>
+              </div>
+              <div class="src-text">
+                <h5>Палаты Щербаковых</h5>
+                <p>9 мин пешком • Палаты XVII в.</p>
+                <span class="src-tag">Новое место</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+
+            <div class="stop-row-clean">
+              <div class="src-photo">
+                <img src="https://images.unsplash.com/photo-1547448415-e9f5b28e570d?auto=format&fit=crop&w=400&q=80" alt="3" />
+                <span class="src-num">3</span>
+              </div>
+              <div class="src-text">
+                <h5>Елоховская галерея</h5>
+                <p>11 мин пешком • Выставка</p>
+                <span class="src-tag orange">Новая экспозиция</span>
+              </div>
+              <button class="src-replace-btn">Заменить</button>
+            </div>
+          </div>
+
+          <button class="cta-orange-main">Открыть маршрут в Яндекс.Картах</button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const places = [
+      {
+        cat: "Басманный • Архитектура",
+        title: "Палаты Щербаковых в Бакунинском",
+        desc: "Белокаменные боярские палаты XVII века в тихом дворике, куда редко доходят случайные прохожие.",
+        img: "https://images.unsplash.com/photo-1513326738677-b964603b136d?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        cat: "Болотный остров • Арт-кластер",
+        title: "Дом культуры «ГЭС-2» и роща",
+        desc: "Бывшая электростанция 1907 года, превращённая Ренцо Пьяно в светлое культурное пространство.",
+        img: "https://images.unsplash.com/photo-1547448415-e9f5b28e570d?auto=format&fit=crop&w=900&q=80"
+      },
+      {
+        cat: "Выезд • Писательский городок",
+        title: "Дом творчества Переделкино",
+        desc: "Сосновый лес, модернистский клуб, библиотека, бистро и дачи Пастернака и Чуковского.",
+        img: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=900&q=80"
+      }
+    ];
+
+    const idx = { light: 0, dark: 0 };
+    const counts = { light: 14, dark: 14 };
+
+    function swipeDemo(mode, dir) {
+      const card = document.getElementById(`sc-${mode}`);
+      card.classList.add(dir === 'left' ? 'swiping-left' : 'swiping-right');
+
+      if (dir === 'right') {
+        counts[mode]++;
+        document.getElementById(`cnt-${mode}`).textContent = counts[mode];
+      }
+
+      setTimeout(() => {
+        idx[mode] = (idx[mode] + 1) % places.length;
+        const p = places[idx[mode]];
+        document.getElementById(`cat-${mode}`).textContent = p.cat;
+        document.getElementById(`title-${mode}`).textContent = p.title;
+        document.getElementById(`desc-${mode}`).textContent = p.desc;
+        document.getElementById(`img-${mode}`).src = p.img;
+        card.classList.remove('swiping-left', 'swiping-right');
+      }, 210);
+    }
+
+    function setThemeView(view, btn) {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const lightBlock = document.getElementById('lightThemeBlock');
+      const darkBlock = document.getElementById('darkThemeBlock');
+
+      if (view === 'both') {
+        lightBlock.style.display = 'block';
+        darkBlock.style.display = 'block';
+      } else if (view === 'light') {
+        lightBlock.style.display = 'block';
+        darkBlock.style.display = 'none';
+      } else {
+        lightBlock.style.display = 'none';
+        darkBlock.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

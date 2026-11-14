@@ -30,7 +30,8 @@
       } catch (e) {}
     })();
   </script>
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <link rel="stylesheet" href="vendor/leaflet.css" />
+  <script defer src="vendor/leaflet.js"></script>
   <link rel="stylesheet" href="tokens.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -38,7 +39,7 @@
   <div id="offlineBanner" class="offline-banner" role="status" hidden>
     <span class="offline-banner-icon" data-icon="i-wifi-off"></span>
     <span>
-      <strong>Нет сети — всё работает</strong>
+      <strong>Нет сети — доступна сохранённая база</strong>
       <span>Маршруты собираем из сохранённой базы. Отметки отправим, когда появится интернет.</span>
     </span>
   </div>

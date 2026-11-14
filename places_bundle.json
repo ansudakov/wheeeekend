@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T08:02:14.820Z",
+  "generatedAt": "2026-11-14T07:34:58.301Z",
   "clusters": [
     {
       "id": "basmanny",
@@ -5952,9 +5952,622 @@
         "photos/museum_darwin-3.jpg"
       ],
       "imageUrl": "photos/museum_darwin.jpg"
+    },
+    {
+      "id": "um_place_544",
+      "name": "Парк «Акведук»",
+      "clusterId": "north_botanical",
+      "category": "nature",
+      "subcategory": "Узнай Москву • Парк / Территория",
+      "coords": [
+        55.83086311398638,
+        37.656256771538246
+      ],
+      "address": "г. Москва,  ул. Бажова, 2",
+      "metro": "ВДНХ / Ростокино",
+      "durationMin": 45,
+      "indoor": false,
+      "quizPriority": 7,
+      "imageUrl": "https://um.mos.ru/content/media/169650cec43f2a.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/places/park-akveduk/",
+      "aliases": [
+        "парк «акведук»"
+      ],
+      "description": "Парк «Акведук» — это историко-ландшафтное пространство в долине Яузы, сформированное вокруг уникального инженерного сооружения XVIII века и связанное с историей первого московского водопровода. Пройдитесь по парку, который объединяет памятник архитектуры, мемориальные объекты и б",
+      "secretTip": "Адрес ориентира: г. Москва,  ул. Бажова, 2"
+    },
+    {
+      "id": "um_place_526",
+      "name": "Усадьба Архангельское-Тюриково: тихая история",
+      "clusterId": "north_botanical",
+      "category": "nature",
+      "subcategory": "Узнай Москву • Парк / Территория",
+      "coords": [
+        55.91752746020768,
+        37.55487668525313
+      ],
+      "address": "Дмитровское шоссе, 120",
+      "metro": "Физтех",
+      "durationMin": 45,
+      "indoor": false,
+      "quizPriority": 7,
+      "imageUrl": "https://um.mos.ru/content/miniature/place/694d41cced4f2.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/places/usadba-arhangelskoe-tyurikovo-tihaya-istoriya/",
+      "aliases": [
+        "усадьба архангельское-тюриково: тихая история"
+      ],
+      "description": "Усадьба Архангельское-Тюриково — один из древнейших уголков Москвы, история которого начинается в XVI веке. Она известна как образец усадебной культуры с прекрасно сохранившимся парком, старыми деревьями и живописным прудом с островом. Архитектурным центром ансамбля стала каменна",
+      "secretTip": "Адрес ориентира: Дмитровское шоссе, 120"
+    },
+    {
+      "id": "um_place_525",
+      "name": "Енисейская улица: магистраль северо-востока Москвы",
+      "clusterId": "north_botanical",
+      "category": "nature",
+      "subcategory": "Узнай Москву • Парк / Территория",
+      "coords": [
+        55.8635299962791,
+        37.66142630067255
+      ],
+      "address": "Енисейская улица",
+      "metro": "Бабушкинская / Медведково",
+      "durationMin": 45,
+      "indoor": false,
+      "quizPriority": 7,
+      "imageUrl": "https://um.mos.ru/content/miniature/place/694d41d160f46.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/places/eniseyskaya-ulica/",
+      "aliases": [
+        "енисейская улица: магистраль северо-востока москвы"
+      ],
+      "description": "Енисейская улица — одна из важнейших и самых протяжённых улиц северо-востока Москвы. Она проходит через три района: Бабушкинский, Свиблово и Северное Медведково, связывая между собой значимые транспортные и жилые зоны города. Своё современное название улица получила в 1964 году в",
+      "secretTip": "Адрес ориентира: Енисейская улица"
+    },
+    {
+      "id": "um_museum_510",
+      "name": "Бункер-музей «Подземная Москва»",
+      "clusterId": "presnya_zotov",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.75402,
+        37.544836
+      ],
+      "address": "г. Москва, ул. Мантулинская, д. 7, стр. 33",
+      "metro": "Деловой центр (БКЛ) / Деловой центр (Солнцевская линия)",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/6af5bf203c948.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/bunker-muzey-podzemnaya-moskva/",
+      "aliases": [
+        "бункер-музей «подземная москва»"
+      ],
+      "description": "Куда бежать, если завоют сирены? Как устроена непубличная сторона подземной Москвы? Контактный музей-убежище около Сити – это единственное место, где можно познакомиться с тайнами столичных подземелий без выдумок и мифов. Экспонаты можно трогать. Подлинное советское оборудование ",
+      "secretTip": "Адрес: г. Москва, ул. Мантулинская, д. 7, стр. 33",
+      "exhibitions": [
+        {
+          "id": "ex_um_510",
+          "title": "Бункер-музей «Подземная Москва»",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Куда бежать, если завоют сирены? Как устроена непубличная сторона подземной Москвы? Контактный музей-убежище около Сити – это единственное место, где можно познакомиться с тайнами "
+        }
+      ]
+    },
+    {
+      "id": "um_museum_479",
+      "name": "Музей Спорта ГБОУ Школа № 1381",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.876162985139,
+        37.696657392971
+      ],
+      "address": "Улица Норильская, дом 4",
+      "metro": "Бабушкинская / Медведково",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d36795f7e2.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/muzey-sporta-gbou-shkola-1381/",
+      "aliases": [
+        "музей спорта гбоу школа № 1381"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Улица Норильская, дом 4).",
+      "secretTip": "Адрес: Улица Норильская, дом 4",
+      "exhibitions": [
+        {
+          "id": "ex_um_479",
+          "title": "Музей Спорта ГБОУ Школа № 1381",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музейное и выставочное пространство Москвы (Улица Норильская, дом 4)."
+        }
+      ]
+    },
+    {
+      "id": "um_museum_477",
+      "name": "Женщины – покорители космоса",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.870694891144,
+        37.493323639881
+      ],
+      "address": "Москва, ул. Клинская д.16а, каб. 412",
+      "metro": "Ховрино",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d366f2a82f.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/zhenschiny-pokoriteli-kosmosa/",
+      "aliases": [
+        "женщины – покорители космоса"
+      ],
+      "description": "Школьный музей «Женщины – покорители космоса» в Ховрино: скафандры, модели ракет, подлинные вещи космонавтов. История женщин в космонавтике. Бесплатно.",
+      "secretTip": "Адрес: Москва, ул. Клинская д.16а, каб. 412",
+      "exhibitions": []
+    },
+    {
+      "id": "um_museum_476",
+      "name": "Окно в мир",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.871874569992,
+        37.490101468088
+      ],
+      "address": "Москва, ул. Клинская д.24, каб 207",
+      "metro": "Ховрино",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d36567604e.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/okno-v-mir/",
+      "aliases": [
+        "окно в мир"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Москва, ул. Клинская д.24, каб 207).",
+      "secretTip": "Адрес: Москва, ул. Клинская д.24, каб 207",
+      "exhibitions": []
+    },
+    {
+      "id": "um_museum_472",
+      "name": "Музей кинофотоаппаратуры и фотографии",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.932341438874,
+        37.540799579693
+      ],
+      "address": "Дмитровское шоссе, д.169Б",
+      "metro": "Алтуфьево",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d3655d344c.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/muzey-kinofotoapparatury-i-fotografii/",
+      "aliases": [
+        "музей кинофотоаппаратуры и фотографии"
+      ],
+      "description": "Музей кинофотоаппаратуры и фотографии на Дмитровском шоссе. Хранит и изучает музейные коллекции и экспонаты для формирования исторического сознания обучающихся.",
+      "secretTip": "Адрес: Дмитровское шоссе, д.169Б",
+      "exhibitions": [
+        {
+          "id": "ex_um_472",
+          "title": "Музей кинофотоаппаратуры и фотографии",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музей кинофотоаппаратуры и фотографии на Дмитровском шоссе. Хранит и изучает музейные коллекции и экспонаты для формирования исторического сознания обучающихся."
+        }
+      ]
+    },
+    {
+      "id": "um_museum_464",
+      "name": "«Экос – наш общий дом»",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.845350924758,
+        37.581636220238
+      ],
+      "address": "Москва, ул. Гостиничная, д.8, к. 1",
+      "metro": "Окружная / Владыкино",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d36642f408.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/ekos-nash-obschiy-dom/",
+      "aliases": [
+        "«экос – наш общий дом»"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Москва, ул. Гостиничная, д.8, к. 1).",
+      "secretTip": "Адрес: Москва, ул. Гостиничная, д.8, к. 1",
+      "exhibitions": []
+    },
+    {
+      "id": "um_museum_463",
+      "name": "Антарктида",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.862683896902,
+        37.502973475446
+      ],
+      "address": "Москва, ул.Фестивальная, д.69",
+      "metro": "Речной вокзал",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d3664efbd1.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/antarktida/",
+      "aliases": [
+        "антарктида"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Москва, ул.Фестивальная, д.69).",
+      "secretTip": "Адрес: Москва, ул.Фестивальная, д.69",
+      "exhibitions": []
+    },
+    {
+      "id": "um_museum_456",
+      "name": "Политехнический музей ГБОУ Школа № 1191",
+      "clusterId": "northwest_nature",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.850382629272,
+        37.358642964605
+      ],
+      "address": "Москва, улица Митинская, дом 46, корпус 2",
+      "metro": "Митино / Пятницкое шоссе",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d3660c372f.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/politehnicheskiy-muzey-gbou-shkola-1191/",
+      "aliases": [
+        "политехнический музей гбоу школа № 1191"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Москва, улица Митинская, дом 46, корпус 2).",
+      "secretTip": "Адрес: Москва, улица Митинская, дом 46, корпус 2",
+      "exhibitions": [
+        {
+          "id": "ex_um_456",
+          "title": "Политехнический музей ГБОУ Школа № 1191",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музейное и выставочное пространство Москвы (Москва, улица Митинская, дом 46, корпус 2)."
+        }
+      ]
+    },
+    {
+      "id": "um_museum_447",
+      "name": "«Музей истории колледжа»",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.803305520145,
+        37.629043649926
+      ],
+      "address": "Мурманский проезд, 8",
+      "metro": "Марьина роща / Алексеевская",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d366329a7c.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/muzey-istorii-kolledzha/",
+      "aliases": [
+        "«музей истории колледжа»"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Мурманский проезд, 8).",
+      "secretTip": "Адрес: Мурманский проезд, 8",
+      "exhibitions": [
+        {
+          "id": "ex_um_447",
+          "title": "«Музей истории колледжа»",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музейное и выставочное пространство Москвы (Мурманский проезд, 8)."
+        }
+      ]
+    },
+    {
+      "id": "um_museum_444",
+      "name": "Музей \"Школьная планета\"",
+      "clusterId": "shabolovka_donskoy",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.649035840358,
+        37.721775345143
+      ],
+      "address": "Новочеркасский будьвар, д.17А",
+      "metro": "Марьино",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d36584cd94.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/muzey-shkolnaya-planeta/",
+      "aliases": [
+        "музей \"школьная планета\""
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Новочеркасский будьвар, д.17А).",
+      "secretTip": "Адрес: Новочеркасский будьвар, д.17А",
+      "exhibitions": [
+        {
+          "id": "ex_um_444",
+          "title": "Музей \"Школьная планета\"",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музейное и выставочное пространство Москвы (Новочеркасский будьвар, д.17А)."
+        }
+      ]
+    },
+    {
+      "id": "um_museum_439",
+      "name": "Музей Палеонтологии",
+      "clusterId": "north_botanical",
+      "category": "exhibition",
+      "subcategory": "Узнай Москву • Музей / Выставка",
+      "coords": [
+        55.934499856851,
+        37.55328596538
+      ],
+      "address": "Москва, 9-я Северная линия, д.1, корп. 2",
+      "metro": "Алтуфьево / Селигерская",
+      "durationMin": 55,
+      "indoor": true,
+      "quizPriority": 8,
+      "imageUrl": "https://um.mos.ru/content/miniature/museum/694d36793a182.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/museums/muzey-paleontologii/",
+      "aliases": [
+        "музей палеонтологии"
+      ],
+      "description": "Музейное и выставочное пространство Москвы (Москва, 9-я Северная линия, д.1, корп. 2).",
+      "secretTip": "Адрес: Москва, 9-я Северная линия, д.1, корп. 2",
+      "exhibitions": [
+        {
+          "id": "ex_um_439",
+          "title": "Музей Палеонтологии",
+          "type": "Музейная экспозиция / Выставка",
+          "until": "Актуально сейчас",
+          "price": "По билетам / регистрации",
+          "highlight": "Музейное и выставочное пространство Москвы (Москва, 9-я Северная линия, д.1, корп. 2)."
+        }
+      ]
+    },
+    {
+      "id": "um_house_4332",
+      "name": "Гидрометцентр России (Центральный институт погоды)",
+      "clusterId": "presnya_zotov",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.75943295911467,
+        37.56834975865027
+      ],
+      "address": "г. Москва, Большой Предтеченский переулок, д. 13, стр. 1",
+      "metro": "Краснопресненская / Улица 1905 года",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": null,
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/gidrometcentr-rossii/",
+      "aliases": [
+        "гидрометцентр россии (центральный институт погоды)"
+      ],
+      "description": "История Гидрометцентра России — это история превращения прогноза погоды из работы с нанесёнными вручную синоптическими картами в сложную систему математического моделирования атмосферы, океана и суши. Созданный в Москве в 1930 году как Центральное бюро погоды,",
+      "secretTip": "Точный адрес: г. Москва, Большой Предтеченский переулок, д. 13, стр. 1"
+    },
+    {
+      "id": "um_house_4331",
+      "name": "«Планета КВН» — бывший кинотеатр «Гавана»",
+      "clusterId": "presnya_zotov",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.793971,
+        37.61777
+      ],
+      "address": "г. Москва, Шереметьевская улица, д. 2",
+      "metro": "Марьина роща",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/6aed80b7391d8.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/planeta-kvn-byvshiy-kinoteatr-gavana/",
+      "aliases": [
+        "«планета квн» — бывший кинотеатр «гавана»"
+      ],
+      "description": "Современный Дом КВН на Шереметьевской улице возник на основе советского кинотеатра «Гавана», полностью изменившего свой архитектурный образ после реконструкции 2012–2013 годов. Две огромные волнообразные металлические ленты, словно парящие перед фасадом, превр",
+      "secretTip": "Точный адрес: г. Москва, Шереметьевская улица, д. 2"
+    },
+    {
+      "id": "um_house_4330",
+      "name": "Московский автомобильный завод «Москвич»",
+      "clusterId": "taganka_krutitsy",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.712436,
+        37.71336
+      ],
+      "address": "г. Москва, Волгоградский проспект, д. 42, корп. 36",
+      "metro": "Текстильщики",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/6aeca2c48f08b.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/moskovskiy-avtomobilnyy-zavod-moskvich/",
+      "aliases": [
+        "московский автомобильный завод «москвич»"
+      ],
+      "description": "6 ноября 1930 года на Остаповском шоссе начал работать Московский автосборочный завод. Здесь собирали «Форды» и полуторки ГАЗ, создавали малолитражные «Москвичи», а спустя десятилетия историческое имя вернулось на автомобильный конвейер столицы. Московский авт",
+      "secretTip": "Точный адрес: г. Москва, Волгоградский проспект, д. 42, корп. 36"
+    },
+    {
+      "id": "um_house_4301",
+      "name": "Станция метро «Вавиловская»",
+      "clusterId": "shabolovka_donskoy",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.684031697494476,
+        37.54002661513027
+      ],
+      "address": "г. Москва, на пересечении с ул. Строителей и Панфёрова",
+      "metro": "Вавиловская",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/69f9c2819e022.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/stanciya-metro-vavilovskaya/",
+      "aliases": [
+        "станция метро «вавиловская»"
+      ],
+      "description": "«Вавиловская» запоминается игрой света на тёмной стене и длинной линией светильников над платформой. Её оформление держится на точном контрасте чёрного и белого, без лишних деталей и эффектов. «Вавиловская» — станция Троицкой линии Московского метрополитена, о",
+      "secretTip": "Точный адрес: г. Москва, на пересечении с ул. Строителей и Панфёрова"
+    },
+    {
+      "id": "um_house_4298",
+      "name": "Станция метро «Окская»",
+      "clusterId": "taganka_krutitsy",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.718663171366146,
+        37.7804763372955
+      ],
+      "address": "г. Москва, Окская улица",
+      "metro": "Окская",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/69ea20753b7c4.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/stanciya-metro-okskaya/",
+      "aliases": [
+        "станция метро «окская»"
+      ],
+      "description": "«Окская» соединяет синий цвет, световые кольца и двухплатформенную композицию в цельный подземный образ. Тема реки проведена в её оформлении спокойно и последовательно — от названия до рисунка потолка. «Окская» — станция Некрасовской линии Московского метропол",
+      "secretTip": "Точный адрес: г. Москва, Окская улица"
+    },
+    {
+      "id": "um_house_4296",
+      "name": "Станция метро «Перово»",
+      "clusterId": "basmanny",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.751765769205605,
+        37.78845865676116
+      ],
+      "address": "г. Москва, Калининская линия, метро Перово",
+      "metro": "Перово",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/69ea19def2c9f.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/stanciya-metro-perovo/",
+      "aliases": [
+        "станция метро «перово»"
+      ],
+      "description": "«Перово» раскрывает тему народного искусства через белокаменную резьбу, орнамент и мифологические образы. В её оформлении односводчатое пространство соединено с мотивами русской декоративной традиции. «Перово» — станция Калининской линии Московского метрополит",
+      "secretTip": "Точный адрес: г. Москва, Калининская линия, метро Перово"
+    },
+    {
+      "id": "um_house_4295",
+      "name": "Станция метро «Медведково»",
+      "clusterId": "north_botanical",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.88808563755628,
+        37.6615875386299
+      ],
+      "address": "г. Москва. ул. Широкая",
+      "metro": "Медведково",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/69e8f0b1671db.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/stanciya-metro-medvedkovo/",
+      "aliases": [
+        "станция метро «медведково»"
+      ],
+      "description": "«Медведково» сохраняет цельный образ станции конца 1970-х годов, построенный на теме Севера. Узнайте, как в её оформлении строгая трёхпролётная композиция соединилась с рельефными панно и сдержанной цветовой гаммой. «Медведково» — северная конечная станция Кал",
+      "secretTip": "Точный адрес: г. Москва. ул. Широкая"
+    },
+    {
+      "id": "um_house_4294",
+      "name": "Станция метро «Менделеевская»",
+      "clusterId": "presnya_zotov",
+      "category": "courtyard",
+      "subcategory": "Узнай Москву • Архитектура и дворы",
+      "coords": [
+        55.78168951134514,
+        37.59847843152426
+      ],
+      "address": "г. Москва, Новослободская улица",
+      "metro": "Менделеевская",
+      "durationMin": 25,
+      "indoor": false,
+      "quizPriority": 6,
+      "imageUrl": "https://um.mos.ru/content/miniature/house/69e8abc167c45.jpg",
+      "sourceName": "Узнай Москву (um.mos.ru)",
+      "sourceUrl": "https://um.mos.ru/houses/stanciya-metro-mendeleevskaya/",
+      "aliases": [
+        "станция метро «менделеевская»"
+      ],
+      "description": "«Менделеевская» — одна из тех станций московского метро, где особенно ясно виден замысел архитектора. Ее история соединяет метростроение конца 1980-х годов, работу Н.А. Алёшиной и оформление, построенное на теме науки. Это рассказ о станции, в которой архитект",
+      "secretTip": "Точный адрес: г. Москва, Новослободская улица"
     }
   ],
   "sourcesMeta": {
-    "totalPlacesCount": 187
+    "syncedAt": "2026-11-14T07:34:58.284Z",
+    "totalPlacesCount": 209,
+    "umMosCount": 146,
+    "sources": [
+      "Узнай Москву (um.mos.ru API v1 — места, музеи, особняки, маршруты)"
+    ],
+    "delivery": "static-catalogue",
+    "sourceStatus": {
+      "umMos": "ok",
+      "kudago": "unavailable"
+    },
+    "freshnessNote": "Каталог обновляется при публикации приложения. Расписание и билеты проверяйте на сайте площадки."
   }
 }

@@ -24,6 +24,7 @@
     completedRoutes: [],
     savedRoutes: {},
     removedSavedRoutes: {},
+    removedPlaceMarks: {},
     settings: { allowVisitedIfNewExhibition: true }
   };
 
@@ -56,6 +57,9 @@
     map: null,
     loading: null
   };
+
+  const MARK_MAPS = ["visitedPlaces", "seenExhibitions", "likedPlaces", "unvisitedChecked", "wantedPlaces", "dislikedPlaces"];
+  let persistedMarks = null;
 
   const WEATHER_TEXT = {
     0: "ясно", 1: "почти ясно", 2: "переменная облачность", 3: "пасмурно",
@@ -208,23 +212,48 @@
     state.memory.settings = state.memory.settings || {};
     if (next === "auto") document.documentElement.removeAttribute("data-theme");
     else document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem(STORAGE.theme, next);
+    try { localStorage.setItem(STORAGE.theme, next); } catch (_) {}
   }
 
   function currentTheme() {
-    return localStorage.getItem(STORAGE.theme) || "auto";
+    try { return localStorage.getItem(STORAGE.theme) || "auto"; } catch (_) { return "auto"; }
   }
 
   function hydrateMemory() {
     try {
       const raw = localStorage.getItem(STORAGE.memory);
-      if (raw) state.memory = mergeMemory(clone(DEFAULT_MEMORY), JSON.parse(raw));
+      if (raw) state.memory = mergeMemory(JSON.parse(raw), clone(DEFAULT_MEMORY));
     } catch (e) {}
-    state.memory = mergeMemory(clone(DEFAULT_MEMORY), state.memory);
+    state.memory = mergeMemory(state.memory, clone(DEFAULT_MEMORY));
+    persistedMarks = clone(state.memory);
     try {
       const filters = JSON.parse(localStorage.getItem(STORAGE.filters) || "null");
       if (filters) state.filters = { ...state.filters, ...filters };
     } catch (e) {}
+  }
+
+  function markTime(value) {
+    if (typeof value === "string") return Date.parse(value) || 0;
+    return value && typeof value === "object" ? Date.parse(value.visitedAt || value.seenAt || value.updatedAt || "") || 0 : 0;
+  }
+
+  function mergeTimestamps(a = {}, b = {}) {
+    const result = { ...a };
+    Object.entries(b).forEach(([id, timestamp]) => {
+      if (!result[id] || markTime(timestamp) > markTime(result[id])) result[id] = timestamp;
+    });
+    return result;
+  }
+
+  function mergeMarks(local = {}, remote = {}, removed = {}) {
+    const result = {};
+    new Set([...Object.keys(remote), ...Object.keys(local)]).forEach(id => {
+      const l = local[id], r = remote[id];
+      const value = l === undefined ? r : r === undefined ? l : markTime(l) >= markTime(r) ? l : r;
+      if (removed[id] && markTime(removed[id]) >= markTime(value)) return;
+      result[id] = value;
+    });
+    return result;
   }
 
   function mergeMemory(local, remote) {
@@ -243,10 +272,16 @@
         (a, b) => String(b.completedAt || "").localeCompare(String(a.completedAt || ""))
       ),
       savedRoutes: mergeSaved(l.savedRoutes, r.savedRoutes, l.removedSavedRoutes, r.removedSavedRoutes),
-      removedSavedRoutes: { ...(r.removedSavedRoutes || {}), ...(l.removedSavedRoutes || {}) },
+      removedSavedRoutes: mergeTimestamps(r.removedSavedRoutes, l.removedSavedRoutes),
+      removedPlaceMarks: {},
       customPlaces: mergeById(r.customPlaces || [], l.customPlaces || []),
       settings: { ...(r.settings || {}), ...(l.settings || {}) }
     };
+    MARK_MAPS.forEach(key => {
+      const removed = mergeTimestamps(r.removedPlaceMarks?.[key], l.removedPlaceMarks?.[key]);
+      merged.removedPlaceMarks[key] = removed;
+      merged[key] = mergeMarks(l[key], r[key], removed);
+    });
     Object.keys(merged.visitedPlaces).forEach((id) => {
       delete merged.unvisitedChecked[id];
     });
@@ -263,7 +298,7 @@
   }
 
   function mergeSaved(localSaved, remoteSaved, localRemoved, remoteRemoved) {
-    const removed = { ...(remoteRemoved || {}), ...(localRemoved || {}) };
+    const removed = mergeTimestamps(remoteRemoved, localRemoved);
     const all = { ...(remoteSaved || {}), ...(localSaved || {}) };
     const result = {};
     Object.keys(all).forEach((id) => {
@@ -276,6 +311,25 @@
   }
 
   function persistMemory() {
+    const memory = state.memory;
+    memory.removedPlaceMarks = memory.removedPlaceMarks || {};
+    MARK_MAPS.forEach(key => {
+      const before = persistedMarks?.[key] || {};
+      const after = memory[key] || {};
+      const removed = memory.removedPlaceMarks[key] || (memory.removedPlaceMarks[key] = {});
+      Object.keys(before).forEach(id => {
+        if (!(id in after)) removed[id] = new Date(Math.max(Date.now(), markTime(before[id]) + 1, markTime(removed[id]) + 1)).toISOString();
+      });
+      Object.keys(after).forEach(id => {
+        if (removed[id] && !(id in before)) {
+          // Undo/re-add is a new decision, even when its restored value had an old date.
+          const now = new Date(Math.max(Date.now(), markTime(removed[id]) + 1)).toISOString();
+          after[id] = key === "visitedPlaces" ? { ...after[id], visitedAt: now } :
+            key === "seenExhibitions" ? { ...after[id], seenAt: now } : now;
+        }
+      });
+    });
+    persistedMarks = clone(memory);
     try {
       localStorage.setItem(STORAGE.memory, JSON.stringify(state.memory));
     } catch (e) {}
@@ -298,42 +352,34 @@
     } catch (e) {}
   }
 
-  function loadBundle() {
-    return new Promise((resolve) => {
-      let cached = null;
+  async function loadBundle() {
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(STORAGE.bootstrap) || "null"); } catch (_) {}
+    const apply = (bundle) => {
+      if (!bundle || !Array.isArray(bundle.places) || !bundle.places.length) return false;
+      state.clusters = bundle.clusters || [];
+      state.places = bundle.places;
+      state.sourcesMeta = bundle.sourcesMeta || null;
+      return true;
+    };
+    const hadCache = apply(cached);
+    const refresh = async () => {
       try {
-        cached = JSON.parse(localStorage.getItem(STORAGE.bootstrap) || "null");
-      } catch (e) {}
-      if (cached && Array.isArray(cached.places) && cached.places.length) {
-        state.clusters = cached.clusters || [];
-        state.places = cached.places;
-        state.sourcesMeta = cached.sourcesMeta || null;
-        state.weather = cached.weather || null;
-        resolve();
-      }
-      fetch("places_bundle.json", { cache: "no-store" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((bundle) => {
-          if (bundle && Array.isArray(bundle.places)) {
-            state.clusters = bundle.clusters || [];
-            state.places = bundle.places;
-            state.sourcesMeta = bundle.sourcesMeta || null;
-            try {
-              localStorage.setItem(
-                STORAGE.bootstrap,
-                JSON.stringify({
-                  clusters: state.clusters,
-                  places: state.places,
-                  sourcesMeta: state.sourcesMeta,
-                  savedAt: new Date().toISOString()
-                })
-              );
-            } catch (e) {}
-          }
-          resolve();
-        })
-        .catch(() => resolve());
-    });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        let bundle;
+        try {
+          const response = await fetch("places_bundle.json", { cache: "no-store", signal: controller.signal });
+          if (!response.ok) return;
+          bundle = await response.json();
+        } finally { clearTimeout(timeout); }
+        if (apply(bundle)) {
+          try { localStorage.setItem(STORAGE.bootstrap, JSON.stringify({ ...bundle, savedAt: new Date().toISOString() })); } catch (_) {}
+        }
+      } catch (_) { /* Last successful catalogue remains available offline. */ }
+    };
+    if (hadCache) { refresh(); return; }
+    await refresh();
   }
 
   function loadWeather() {
@@ -431,7 +477,8 @@
         state.memory = mergeMemory(state.memory, remote);
         persistMemory();
       }
-      await c.pushMemory(state.memory);
+      const saved = await c.pushMemory(state.memory);
+      if (!saved) throw new Error("Не удалось синхронизировать. Отметки сохранены на устройстве и отправятся при восстановлении связи.");
       updateAccount();
       if (["favorites", "memory", "more", "profile"].includes(state.screen)) renderScreen();
       if (!options.quiet) toast("Память синхронизирована");
@@ -445,7 +492,7 @@
   // ==================== ROUTER ====================
 
   const TAB_SCREENS = { walks: "walks", favorites: "favorites", memory: "memory", more: "more" };
-  const LEGACY_SCREENS = { routes: "walks", saved: "favorites", swipe: "swipe" };
+  const LEGACY_SCREENS = { saved: "favorites", swipe: "swipe" };
 
   function parseLocation() {
     const params = new URLSearchParams(window.location.search);
@@ -604,8 +651,18 @@
 
   function registerServiceWorker() {
     if (!("serviceWorker" in navigator)) return;
+    let controlled = Boolean(navigator.serviceWorker.controller);
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (controlled) window.location.reload();
+      controlled = true;
+    });
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((registration) => {
+        registration.update().catch(() => {});
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) registration.update().catch(() => {});
+        });
+      }).catch(() => {});
     });
   }
 
@@ -639,7 +696,7 @@
 
   function unseenExhibition(placeData) {
     return (placeData.exhibitions || []).find(
-      (ex) => !state.memory.seenExhibitions[ex.id]
+      (ex) => window.WheeeOffline?.isCurrentExhibition(ex) && !state.memory.seenExhibitions[ex.id]
     );
   }
 
@@ -691,7 +748,10 @@
     hydrateIcons(document);
     registerServiceWorker();
     updateOfflineBanner();
-    window.addEventListener("online", updateOfflineBanner);
+    window.addEventListener("online", async () => {
+      updateOfflineBanner();
+      await syncCloud({ quiet: true });
+    });
     window.addEventListener("offline", updateOfflineBanner);
     if (window.matchMedia) {
       const media = window.matchMedia("(prefers-color-scheme: dark)");

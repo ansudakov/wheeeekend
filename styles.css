@@ -781,3 +781,53 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .yandex-static-img { filter: brightness(.22) contrast(1.1) saturate(.4); }
 }
+
+/* Functional mobile interactions */
+.swipe-screen { height: 100dvh; min-height: 0; overscroll-behavior: none; }
+.swipe-stage { height: auto; min-height: 240px; flex: 1; margin-top: 12px; }
+.swipe-card-top { touch-action: none; user-select: none; -webkit-user-select: none; }
+.swipe-card-under { pointer-events: none; }
+.swipe-card img { -webkit-user-drag: none; }
+.swipe-hint { margin-top: 8px; padding-top: 0; }
+.swipe-controls { flex-shrink: 0; margin-top: 24px; }
+.routes-carousel { flex-shrink: 0; padding-bottom: 8px; overscroll-behavior-x: contain; }
+.route-card { display: flex; flex-direction: column; }
+.route-card-body { flex: 1; }
+.route-card .routes-actions { margin-top: auto; padding-top: 8px; grid-template-columns: 48px 1fr; gap: 8px; }
+.route-card .routes-actions .btn { min-height: 48px; padding: 8px; font-size: 13px; }
+.route-card .routes-actions .icon { width: 20px; height: 20px; }
+.routes-refresh { margin-top: 18px; flex-shrink: 0; }
+.routes-help, .route-note, .place-note { color: var(--text-muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+.routes-help { text-align: center; }
+.interactive-route-map { position: absolute; inset: 0 0 24px; z-index: 1; background: var(--map-bg); touch-action: none; font-family: var(--font-ui); }
+.route-map-controls { pointer-events: none; z-index: 3; }
+.route-map-controls button, .route-map-controls a { pointer-events: auto; }
+.route-sheet { z-index: 2; }
+.route-pin { background: transparent; }
+.route-pin span { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 3px solid var(--paper); border-radius: 50%; background: var(--ink); color: var(--paper); font-family: var(--font-ui); font-size: 13px; font-weight: 800; box-shadow: var(--shadow-card); }
+.map-place-button { min-height: 44px; text-align: left; font-weight: 700; color: var(--ink); font-size: 13px; }
+.interactive-route-map .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; color: var(--ink); }
+.interactive-route-map .leaflet-control-attribution { font-size: 9px; }
+.map-status { position: absolute; bottom: 40px; left: 10px; right: 60px; z-index: 2; pointer-events: none; font-size: 11px; padding: 6px 8px; border-radius: 8px; color: var(--text); background: var(--surface); }
+.place-tap { top: 45%; bottom: auto; width: 44px; height: 44px; border-radius: 50%; color: var(--paper); background: var(--overlay-photo); font-size: 30px; line-height: 1; }
+.place-tap-left { left: 12px; }
+.place-tap-right { right: 12px; }
+.place-track { overscroll-behavior-x: contain; }
+.place-controls { top: calc(var(--safe-top) + 14px); }
+.place-progress { top: calc(var(--safe-top) + 65px); pointer-events: none; }
+.place-slide > .photo-fallback { flex-direction: column; gap: 12px; }
+.place-map-link { margin-top: 14px; }
+.place-address { font-size: 14px; margin-top: 12px; }
+@media (max-height: 720px) {
+  .swipe-screen { padding-bottom: calc(var(--safe-bottom) + 8px); }
+  .swipe-stage { min-height: 200px; }
+  .swipe-controls { margin-top: 18px; gap: 22px; }
+  .swipe-action > span { width: 52px; height: 52px; }
+  .swipe-card .card-title { font-size: 22px; }
+  .swipe-desc { font-size: 13px; }
+  .route-card-photo { height: 180px; }
+  .place-gallery { height: 280px; }
+  .place-sheet { top: 248px; }
+}
+.interactive-route-map { bottom: 34px; }
+.interactive-route-map .leaflet-bottom { bottom: 3px; }

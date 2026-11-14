@@ -52,17 +52,19 @@
   function formatDurationText(min) {
     const value = Number(min);
     if (!value || value < 1) return "";
-    const hours = value / 60;
-    const low = Math.floor(hours);
-    const high = Math.ceil(hours);
-    if (high - low === 0) return `Примерно ${low} ${formatHoursWord(low)}`;
-    if (hours - low < 0.25) return `Примерно ${low} ${formatHoursWord(low)}`;
-    if (high - hours < 0.25) return `Примерно ${high} ${formatHoursWord(high)}`;
-    if (low === 1 && hours < 1.75) return "Примерно 1,5 часа";
-    return `${low}–${high} ${formatHoursWord(high)}`;
+    const hours = Math.floor(value / 60);
+    const minutes = Math.round(value % 60);
+    return `Примерно ${hours ? `${hours} ч` : ""}${hours && minutes ? " " : ""}${minutes ? `${minutes} мин` : ""}`;
   }
 
-  function evaluatePlaceCandidate(place, memory) {
+  function isCurrentExhibition(exhibition, now = Date.now()) {
+    if (!exhibition || !exhibition.verifiedAt || !exhibition.endsAt) return false;
+    const end = Date.parse(exhibition.endsAt);
+    const start = exhibition.startsAt ? Date.parse(exhibition.startsAt) : -Infinity;
+    return Number.isFinite(end) && start <= now && now <= end;
+  }
+
+  function evaluatePlaceCandidate(place, memory = {}) {
     if (memory.dislikedPlaces && memory.dislikedPlaces[place.id]) {
       return {
         eligible: false,
@@ -74,7 +76,7 @@
     const visited = Boolean(memory.visitedPlaces && memory.visitedPlaces[place.id]);
     const record = memory.visitedPlaces && memory.visitedPlaces[place.id];
     const unseen = (place.exhibitions || []).filter(
-      (ex) => !(memory.seenExhibitions && memory.seenExhibitions[ex.id])
+      (ex) => isCurrentExhibition(ex) && !(memory.seenExhibitions && memory.seenExhibitions[ex.id])
     );
 
     if (!visited) {
@@ -148,25 +150,27 @@
     };
   }
 
+  // A shorter outing must not make a museum visit artificially faster.
   function realisticStopDurationMin(place, mode, isSuburb) {
-    const scale = mode === "short" ? 0.78 : mode === "long" ? 1.15 : 1;
-    if (isSuburb) {
-      return Math.round(Math.min(60, Math.max(30, place.durationMin || 45)) * scale / 5) * 5;
-    }
-    if (place.category === "museum") {
-      const base = Math.min(85, Math.max(50, Math.round((place.durationMin || 60) * 0.9)));
-      return Math.max(45, Math.round((base * scale) / 5) * 5);
-    }
-    if (place.category === "courtyard") {
-      const base = Math.min(25, Math.max(15, Math.round((place.durationMin || 30) * 0.55)));
-      return Math.max(15, Math.round((base * scale) / 5) * 5);
-    }
-    if (place.category === "nature") {
-      const base = Math.min(45, Math.max(25, Math.round((place.durationMin || 45) * 0.75)));
-      return Math.max(20, Math.round((base * scale) / 5) * 5);
-    }
-    const base = Math.min(55, Math.max(35, Math.round((place.durationMin || 50) * 0.85)));
-    return Math.max(30, Math.round((base * scale) / 5) * 5);
+    const supplied = Number(place.durationMin) || 0;
+    if (place.category === "exhibition") return Math.max(120, supplied);
+    if (place.category === "museum") return Math.max(90, supplied);
+    if (isSuburb) return Math.max(60, supplied);
+    if (place.category === "nature") return Math.max(35, supplied);
+    return Math.max(20, supplied || 30);
+  }
+
+  function validCoordinates(place) {
+    return Array.isArray(place.coords) && place.coords.length === 2 &&
+      place.coords.every(Number.isFinite) && Math.abs(place.coords[0]) <= 90 && Math.abs(place.coords[1]) <= 180;
+  }
+
+  function isCultural(place) {
+    return place.category === "museum" || place.category === "exhibition";
+  }
+
+  function routeSignature(stops) {
+    return stops.map(p => p.id).sort().join("|");
   }
 
   function shortenName(name) {
@@ -199,7 +203,7 @@
     }
     if (focus === "exhibition") {
       const hasCourtyard = stops.some((s) => s.category === "courtyard");
-      return `${cluster.shortName}: ${hasCourtyard ? "выставки и старые дворы" : "выставки и музеи"}`;
+      return `${cluster.shortName}: ${hasCourtyard ? "выставка и старые дворы" : "искусство и прогулка"}`;
     }
     if (focus === "nature") {
       const hasCourtyard = stops.some((s) => s.category === "courtyard");
@@ -256,7 +260,7 @@
         statusBadge: ev.badge,
         reasonType: ev.reasonType,
         activeExhibition: ev.activeExhibition,
-        isWanted: Boolean(memory.likedPlaces && memory.likedPlaces[place.id]),
+        isWanted: Boolean((memory.likedPlaces || {})[place.id] || (memory.wantedPlaces || {})[place.id]),
         walkFromPrevKm: +walkFromPrevKm.toFixed(2),
         walkFromPrevMin
       };
@@ -285,6 +289,8 @@
     return {
       id: `route_${cluster.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       clusterId: cluster.id,
+      focus,
+      durationMode: mode,
       clusterName: cluster.name,
       clusterShortName: cluster.shortName,
       areaType: cluster.areaType,
@@ -295,7 +301,7 @@
       metrics: {
         stopCount: stops.length,
         totalWalkKm: +totalWalkKm.toFixed(1),
-        totalWalkMin,
+        totalWalkMin: transferWalkMin,
         totalExploreMin,
         totalDurationMin,
         totalDurationText: formatDurationText(totalDurationMin),
@@ -305,134 +311,106 @@
     };
   }
 
-  function generateRoutes(opts) {
-    const clusters = (opts && opts.clusters) || [];
-    const places = (opts && opts.places) || [];
-    const memory = (opts && opts.memory) || {};
-    const filters = (opts && opts.filters) || {};
+  // Shared by generation and step replacement. Never relax these constraints
+  // when the dataset or a user's memory has too few suitable places.
+  function validateRoute(route, filters = {}) {
+    if (!route || !Array.isArray(route.stops) || !route.stops.length) return false;
+    const stops = route.stops;
+    const budget = { short: 90, medium: 150, long: 240 }[filters.duration || route.durationMode] || route.metrics?.timeBudgetMin || 150;
+    const focus = filters.focus || route.focus || "mix";
+    if (stops.some(p => !validCoordinates(p))) return false;
+    if (new Set(stops.map(p => p.id)).size !== stops.length) return false;
+    if (stops.some(p => p.clusterId !== route.clusterId)) return false;
+    if (filters.clusterId && filters.clusterId !== "any" && route.clusterId !== filters.clusterId) return false;
+    if (!Number.isFinite(route.metrics?.totalDurationMin) || route.metrics.totalDurationMin > budget) return false;
+    if (stops.filter(isCultural).length > 1) return false;
+    for (let i = 1; i < stops.length; i++) {
+      if (walkingDistanceKm(stops[i - 1].coords, stops[i].coords) > 3.2) return false;
+    }
+    if (focus === "exhibition" && !stops.some(isCultural)) return false;
+    if (focus === "nature" || focus === "courtyard") {
+      if (!stops.some(p => p.category === focus) || stops.some(isCultural)) return false;
+    }
+    if (focus === "suburb" && route.areaType !== "suburb") return false;
+    return true;
+  }
+
+  function generateRoutes(opts = {}) {
+    const clusters = opts.clusters || [];
+    const memory = opts.memory || {};
+    const filters = opts.filters || {};
     const focus = filters.focus || "mix";
     const duration = filters.duration || "medium";
+    const budget = { short: 90, medium: 150, long: 240 }[duration] || 150;
     const clusterId = filters.clusterId || "any";
-    const exclude = filters.excludeRouteClusterIds || [];
-    const targetCount = duration === "short" ? 3 : duration === "long" ? 5 : 4;
+    const excluded = new Set(filters.excludeRouteSignatures || []);
+    const previousClusters = filters.excludeRouteClusterIds || [];
+    const candidates = [];
+    const signatures = new Set();
+    const matchesFocus = p => focus === "exhibition" ? isCultural(p) :
+      focus === "courtyard" || focus === "nature" ? p.category === focus : true;
+    const places = (opts.places || []).filter(p => p && p.id && validCoordinates(p) &&
+      !isJunkPlace(p) && evaluatePlaceCandidate(p, memory).eligible);
+    const scorePlace = p => 10 + (Number(p.quizPriority) || 6) +
+      (matchesFocus(p) ? 12 : 0) +
+      ((memory.wantedPlaces || {})[p.id] || (memory.likedPlaces || {})[p.id] ? 18 : 0) +
+      ((memory.unvisitedChecked || {})[p.id] ? 6 : 0) + Math.random() * 14;
 
-    let candidateClusters = clusters.filter((c) => {
-      if (clusterId !== "any") return c.id === clusterId;
-      if (focus === "suburb") return c.areaType === "suburb";
-      return c.areaType === "moscow";
-    });
-    if (candidateClusters.length === 0) candidateClusters = clusters;
-
-    const scored = [];
-    for (const cluster of candidateClusters) {
-      const clusterPlaces = places.filter((p) => p.clusterId === cluster.id);
-      const eligible = [];
-      for (const p of clusterPlaces) {
-        if (isJunkPlace(p)) continue;
-        const ev = evaluatePlaceCandidate(p, memory);
-        if (!ev.eligible) continue;
-        let score = 10 + (p.quizPriority || 6);
-        if (memory.unvisitedChecked && memory.unvisitedChecked[p.id]) score += 12;
-        if (memory.likedPlaces && memory.likedPlaces[p.id]) score += 18;
-        if (memory.wantedPlaces && memory.wantedPlaces[p.id]) score += 18;
-        if (ev.reasonType === "new_place") score += 6;
-        if (focus === "courtyard" && p.category === "courtyard") score += 16;
-        if (focus === "exhibition" && (p.category === "exhibition" || p.category === "museum" || ev.activeExhibition)) score += 17;
-        if (focus === "nature" && p.category === "nature") score += 16;
-        if (focus === "mix") {
-          if (ev.activeExhibition) score += 7;
-          if (p.category === "museum") score += 7;
-          if (p.category === "courtyard") score += 5;
-          if (p.category === "nature") score += 5;
+    for (const cluster of clusters) {
+      if (clusterId !== "any" && cluster.id !== clusterId) continue;
+      if (focus === "suburb" ? cluster.areaType !== "suburb" : clusterId === "any" && cluster.areaType !== "moscow") continue;
+      const pool = places.filter(p => p.clusterId === cluster.id);
+      const anchors = pool.filter(matchesFocus).map(place => ({ place, score: scorePlace(place) }))
+        .sort((a, b) => b.score - a.score);
+      for (const { place: anchor, score } of anchors) {
+        let picked = [anchor];
+        let route = enrichRouteStops(picked, cluster, focus, memory, duration);
+        if (route.metrics.totalDurationMin > budget) continue;
+        // Distant suburban destinations are separate trips. Travel there is not
+        // included in the walking budget and is explicitly identified in metadata.
+        if (cluster.areaType !== "suburb") {
+          const nearby = pool.filter(p => p.id !== anchor.id && haversineKm(anchor.coords, p.coords) <= 2.5)
+            .map(place => ({ place, score: scorePlace(place) - haversineKm(anchor.coords, place.coords) * 5 }))
+            .sort((a, b) => b.score - a.score);
+          for (const { place } of nearby) {
+            if (picked.length >= 6) break;
+            if (isCultural(place) && picked.some(isCultural)) continue;
+            // Nature/courtyard moods remain outdoor walks; exhibitions have their
+            // own mood and are never silently inserted to fill spare time.
+            if ((focus === "nature" || focus === "courtyard") && isCultural(place)) continue;
+            const trial = enrichRouteStops([...picked, place], cluster, focus, memory, duration);
+            if (trial.stops.some(s => s.walkFromPrevKm > 3.2) || trial.metrics.totalDurationMin > budget) continue;
+            picked.push(place);
+            route = trial;
+          }
         }
-        score += Math.random() * 7;
-        eligible.push({ place: p, score });
+        if (!validateRoute(route, filters)) continue;
+        const signature = routeSignature(picked);
+        if (signatures.has(signature) || excluded.has(signature)) continue;
+        signatures.add(signature);
+        route.signature = signature;
+        route.metrics.timeBudgetMin = budget;
+        route.metrics.isEstimate = true;
+        route.metrics.travelToStartIncluded = false;
+        candidates.push({ route, score: score + route.metrics.totalDurationMin / budget * 20 -
+          (previousClusters.includes(cluster.id) ? 20 : 0) });
       }
-      if (eligible.length === 0) continue;
-      eligible.sort((a, b) => b.score - a.score);
-
-      // Маршрут должен укладываться в один прогулочный радиус. Если вокруг
-      // лучшей точки мало соседей — пробуем следующую, а не тащим людей за 7 км.
-      const isSuburb = cluster.areaType === "suburb";
-
-      // За городом точки могут быть за десятки километров друг от друга.
-      // Каждый объект — самостоятельная поездка, а не шаг пешего маршрута.
-      if (isSuburb) {
-        for (const candidate of eligible.slice(0, 3)) {
-          scored.push({
-            cluster,
-            picked: [candidate.place],
-            totalScore:
-              candidate.score +
-              (exclude.includes(cluster.id) ? -12 : 0) +
-              Math.random() * 6
-          });
-        }
-        continue;
-      }
-
-      const maxAnchorKm = 3.2;
-      const maxLegKm = 3.2;
-      const minStops = 3;
-
-      let anchor = null;
-      let pool = [];
-      for (const candidate of eligible.slice(0, 8)) {
-        const compact = eligible.filter(
-          (it) => haversineKm(candidate.place.coords, it.place.coords) <= maxAnchorKm
-        );
-        if (compact.length >= Math.min(targetCount, minStops)) {
-          anchor = candidate;
-          pool = compact;
-          break;
-        }
-      }
-      if (!anchor) continue;
-
-      const effectiveTarget = Math.min(targetCount, pool.length);
-      let picked = [];
-      if (focus === "mix" && pool.length >= effectiveTarget) {
-        const byCat = {
-          courtyard: pool.filter((x) => x.place.category === "courtyard"),
-          exhibition: pool.filter((x) => x.place.category === "exhibition"),
-          museum: pool.filter((x) => x.place.category === "museum"),
-          nature: pool.filter((x) => x.place.category === "nature")
-        };
-        if (byCat.courtyard[0]) picked.push(byCat.courtyard[0]);
-        if (byCat.museum[0] && picked.length < effectiveTarget) picked.push(byCat.museum[0]);
-        if (byCat.exhibition[0] && picked.length < effectiveTarget) picked.push(byCat.exhibition[0]);
-        if (byCat.nature[0] && picked.length < effectiveTarget) picked.push(byCat.nature[0]);
-        for (const item of pool) {
-          if (picked.length >= effectiveTarget) break;
-          if (!picked.includes(item)) picked.push(item);
-        }
-      } else {
-        picked = pool.slice(0, effectiveTarget);
-      }
-
-      // Финальная проверка: выкидываем точки, до которых идти больше maxLegKm.
-      const orderedStops = orderStopsGeographically(picked.map((x) => x.place));
-      const coherent = [orderedStops[0]];
-      for (let i = 1; i < orderedStops.length; i++) {
-        const prev = coherent[coherent.length - 1];
-        if (haversineKm(prev.coords, orderedStops[i].coords) <= maxLegKm) {
-          coherent.push(orderedStops[i]);
-        }
-      }
-      if (coherent.length < minStops) continue;
-
-      const totalScore =
-        picked.reduce((a, x) => a + x.score, 0) / Math.max(1, picked.length) +
-        (exclude.includes(cluster.id) ? -12 : 0) +
-        Math.random() * 6;
-      scored.push({ cluster, picked: coherent, totalScore });
     }
-
-    scored.sort((a, b) => b.totalScore - a.totalScore);
-    const chosen = scored.slice(0, 3);
-    return chosen
-      .filter((c) => c.picked.length > 0)
-      .map((c) => enrichRouteStops(c.picked, c.cluster, focus, memory, duration));
+    candidates.sort((a, b) => b.score - a.score);
+    const chosen = [];
+    // Prefer different districts and different stops, while still offering
+    // multiple alternatives when a single district is selected.
+    while (candidates.length && chosen.length < 3) {
+      candidates.sort((a, b) => {
+        const diversityScore = item => item.score - chosen.reduce((penalty, route) => {
+          const overlap = item.route.stops.filter(p => route.stops.some(s => s.id === p.id)).length;
+          return penalty + overlap * 18 + (route.clusterId === item.route.clusterId ? 10 : 0);
+        }, 0);
+        return diversityScore(b) - diversityScore(a);
+      });
+      chosen.push(candidates.shift().route);
+    }
+    return chosen;
   }
 
   function applySwipe(memory, payload) {
@@ -532,7 +510,12 @@
     applyTell,
     completeRoute,
     evaluatePlaceCandidate,
+    isCurrentExhibition,
+    validateRoute,
     buildMapLinks,
+    routeSignature,
+    enrichRouteStops,
+    realisticStopDurationMin,
     haversineKm
   };
 

@@ -24,6 +24,17 @@
   let authMode = "register";
   let authState = { invite: "", status: "idle", message: "", busy: false };
   let walkTimer = null;
+  const ACTIVE_WALK_KEY = "wheee_active_walk_v1";
+  try {
+    const savedWalk = JSON.parse(localStorage.getItem(ACTIVE_WALK_KEY));
+    if (savedWalk && Array.isArray(savedWalk.route?.stops) && Number.isInteger(savedWalk.index) && savedWalk.index >= 0 && savedWalk.index < savedWalk.route.stops.length) state.walk = savedWalk;
+  } catch (e) {}
+  function persistWalk() {
+    try {
+      if (state.walk) localStorage.setItem(ACTIVE_WALK_KEY, JSON.stringify(state.walk));
+      else localStorage.removeItem(ACTIVE_WALK_KEY);
+    } catch (e) {}
+  }
 
   function formatWalk(km) {
     if (!km) return "";
@@ -146,7 +157,7 @@
       if (memory.visitedPlaces[p.id] || memory.dislikedPlaces[p.id] || memory.wantedPlaces[p.id]) return false;
       return p.imageUrl || (p.images && p.images.length);
     });
-    if (pool.length < 6) pool = state.places.slice();
+
     const sorted = pool.slice().sort((a, b) => (b.quizPriority || 6) - (a.quizPriority || 6));
     const picked = [];
     ["museum", "courtyard", "exhibition", "nature"].forEach((cat) => {
@@ -297,26 +308,30 @@
       const upOpacity = Math.abs(dy) > Math.abs(dx) && dy < -40 ? Math.min(1, -dy / 120) : 0;
       visited.style.opacity = upOpacity;
     };
-    const finish = () => {
+    const finish = (event) => {
       if (!dragging) return;
       dragging = false;
       card.style.transition = "transform 320ms var(--ease-out), opacity 320ms var(--ease-out)";
-      if (dx > 110) return runSwipe("right");
-      if (dx < -110) return runSwipe("left");
-      if (dy < -110 && Math.abs(dy) > Math.abs(dx)) return runSwipe("up");
+      const threshold = Math.min(100, card.clientWidth * .25);
+      if (event.type !== "pointercancel") {
+        if (dy < -threshold && Math.abs(dy) > Math.abs(dx)) return runSwipe("up");
+        if (dx > threshold) return runSwipe("right");
+        if (dx < -threshold) return runSwipe("left");
+      }
       dx = 0; dy = 0;
       card.style.transform = "";
       like.style.opacity = 0; no.style.opacity = 0; visited.style.opacity = 0;
     };
     card.addEventListener("pointerdown", (e) => {
-      if (e.target.closest("button")) return;
+      if (e.target.closest("button") || state.swipe.busy || !e.isPrimary || (e.pointerType === "mouse" && e.button !== 0)) return;
       dragging = true;
       startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
       card.style.transition = "none";
       card.setPointerCapture(e.pointerId);
     });
     card.addEventListener("pointermove", (e) => {
-      if (!dragging) return;
+      if (!dragging || !e.isPrimary) return;
+      e.preventDefault();
       dx = e.clientX - startX;
       dy = e.clientY - startY;
       setTransform();
@@ -391,6 +406,7 @@
         navigate("taste", {}, { replace: true });
         return;
       }
+      if (state.screen !== "swipe") return;
       renderSwipe();
       toast(label, {
         iconName: direction === "right" ? "i-heart" : direction === "up" ? "i-memory" : "i-close",
@@ -466,7 +482,7 @@
       <section class="screen taste theme-ink">
         <span class="eyebrow eyebrow-route">Вкус пойман</span>
         <h1 class="taste-title">Ты — охотник за<br><span class="text-wow">${headline}</span></h1>
-        <p class="taste-lead">Любишь архитектуру и места без толп. Прогулки соберём вокруг этого — и разбавим одной выставкой.</p>
+        <p class="taste-lead">Твои отметки сохранены. Будем учитывать их в подборке и пропускать места, где ты уже был.</p>
         <div class="taste-card">
           ${rows.map(([label, value]) => `
             <div class="taste-row">
@@ -498,9 +514,9 @@
 
   function moodTiles() {
     const items = [
-      ["mix", "✱", "Микс", "двор + выставка + парк"],
+      ["mix", "✱", "Микс", "разные открытия рядом"],
       ["courtyard", "⌂", "Тайные дворы", "арки и архитектура"],
-      ["exhibition", "◐", "Выставки", "что идёт сейчас"],
+      ["exhibition", "◐", "Музеи и выставки", "музеи и арт-пространства"],
       ["nature", "❦", "Парки, усадьбы", "зелень и экотропы"]
     ];
     return items.map(([key, glyph, title, sub]) => `
@@ -518,14 +534,15 @@
           <span class="weather-chip"><span class="weather-sun">${icon("i-sun")}</span>${escapeHtml(weatherText())}</span>
           <button type="button" class="avatar" data-nav="profile" data-from="walks" aria-label="Профиль">${accountInitial()}</button>
         </div>
+        ${state.walk ? `<button type="button" class="btn btn-secondary resume-walk" data-nav="walk" data-route="${escapeHtml(state.walk.route.id)}">${icon("i-play")} Продолжить прогулку · ${state.walk.index + 1}/${state.walk.route.stops.length}</button>` : ""}
         <h1 class="screen-title">Куда пойдём<br>сегодня?</h1>
         <div class="section-label">Настроение</div>
         <div class="mood-grid">${moodTiles()}</div>
         <div class="section-label">Сколько есть времени</div>
         <div class="segmented">
-          <button type="button" class="${state.filters.duration === "short" ? "active" : ""}" data-duration="short"><strong>1,5 часа</strong><span>3 места</span></button>
-          <button type="button" class="${state.filters.duration === "medium" ? "active" : ""}" data-duration="medium"><strong>2,5 часа</strong><span>4 места</span></button>
-          <button type="button" class="${state.filters.duration === "long" ? "active" : ""}" data-duration="long"><strong>4 часа</strong><span>5 мест</span></button>
+          <button type="button" class="${state.filters.duration === "short" ? "active" : ""}" data-duration="short"><strong>1,5 часа</strong><span>Короткая прогулка</span></button>
+          <button type="button" class="${state.filters.duration === "medium" ? "active" : ""}" data-duration="medium"><strong>2,5 часа</strong><span>Без спешки</span></button>
+          <button type="button" class="${state.filters.duration === "long" ? "active" : ""}" data-duration="long"><strong>4 часа</strong><span>Большая прогулка</span></button>
         </div>
         <div class="section-label">Где</div>
         <div class="chips-scroll">
@@ -540,7 +557,7 @@
         </button>
         <div class="walks-spacer"></div>
         <button type="button" class="btn btn-ink btn-cta" data-action="start-loading">
-          <span class="btn-cta-text"><strong>Показать 3 маршрута</strong><span>${escapeHtml(ctaSummary())}</span></span>
+          <span class="btn-cta-text"><strong>Подобрать маршруты</strong><span>${escapeHtml(ctaSummary())}</span></span>
           <span class="btn-cta-icon">${icon("i-arrow-right")}</span>
         </button>
       </section>`;
@@ -574,7 +591,7 @@
         </div>
         <div class="loading-steps">
           <div><span class="check-dot">${icon("i-check")}</span>Убираем ${visited} ${plural(visited, "место", "места", "мест")}, где ты уже был</div>
-          <div><span class="check-dot">${icon("i-check")}</span>Ищем ${state.filters.focus === "nature" ? "парки" : state.filters.focus === "exhibition" ? "выставки" : "тайные дворы"} рядом друг с другом</div>
+          <div><span class="check-dot">${icon("i-check")}</span>Ищем ${state.filters.focus === "nature" ? "парки" : state.filters.focus === "exhibition" ? "музеи и арт-пространства" : "тайные дворы"} рядом друг с другом</div>
           <div><span class="check-dot">${icon("i-check")}</span>Прокладываем пешую нитку на ${duration} часа</div>
         </div>
         <div class="loading-skeletons"><div></div><div></div></div>
@@ -633,19 +650,17 @@
           ${backButton("routes-back", "Назад")}
           <a class="filter-pill" href="?screen=walks" data-nav="walks">${escapeHtml(filterSummary())}<span class="filter-pill-icon">${icon("i-filter")}</span></a>
         </div>
-        <div class="routes-heading"><h1 class="screen-title">Три прогулки<br>на сегодня</h1><span class="routes-count">${state.routeIndex + 1} / ${routes.length}</span></div>
+        <div class="routes-heading"><h1 class="screen-title">Прогулки<br>для тебя</h1><span class="routes-count">${state.routeIndex + 1} / ${routes.length}</span></div>
         <div class="routes-carousel" id="routesCarousel">
           ${routes.map((r, idx) => routeCard(r, idx)).join("")}
         </div>
         <div class="carousel-dots">${routes.map((_, i) => `<span class="${i === state.routeIndex ? "on" : ""}"></span>`).join("")}</div>
-        <div class="routes-spacer"></div>
-        <div class="routes-actions">
-          <button type="button" class="btn btn-secondary btn-square" data-action="share-route" aria-label="Поделиться маршрутом">${icon("i-share")}</button>
-          <button type="button" class="btn btn-ink" data-action="open-route">Смотреть маршрут ${icon("i-arrow-right")}</button>
-        </div>
+        <button type="button" class="btn btn-secondary routes-refresh" data-action="refresh-routes">${icon("i-swap")} Предложить другие маршруты</button>
+        <p class="routes-help">Новая подборка с теми же настройками. Район, настроение и время можно изменить сверху.</p>
       </section>`;
     requestAnimationFrame(() => {
       const carousel = $("#routesCarousel");
+      if (!carousel) return;
       const cards = $all(".route-card", carousel);
       carousel.scrollTo({ left: state.routeIndex * (cards[0] ? cards[0].offsetWidth + 12 : 0) });
       carousel.addEventListener("scroll", () => {
@@ -653,6 +668,7 @@
         const idx = Math.max(0, Math.min(routes.length - 1, Math.round(carousel.scrollLeft / width)));
         if (idx !== state.routeIndex) {
           state.routeIndex = idx;
+          cards.forEach((card, i) => card.classList.toggle("active", i === idx));
           $(".routes-count").textContent = `${idx + 1} / ${routes.length}`;
           $all(".carousel-dots span").forEach((dot, i) => dot.classList.toggle("on", i === idx));
         }
@@ -681,6 +697,10 @@
             ${tag ? `<span class="chip-wow">${escapeHtml(tag)}</span>` : ""}
           </div>
           <p class="route-chain">${(route.stops || []).map((s) => escapeHtml(s.name.split("(")[0].trim())).join(" → ")}</p>
+          <div class="routes-actions">
+            <button type="button" class="btn btn-secondary btn-square" data-share-route-index="${idx}" aria-label="Поделиться этим маршрутом">${icon("i-share")}</button>
+            <button type="button" class="btn btn-ink" data-nav="route" data-route="${escapeHtml(route.id)}">Смотреть маршрут ${icon("i-arrow-right")}</button>
+          </div>
         </div>
       </article>`;
   }
@@ -857,6 +877,7 @@
   }
 
   function renderRoute() {
+    clearRouteMap();
     let route = routeFromParams();
     if (!route && state.places.length) {
       if (!state.routes.length) {
@@ -884,8 +905,8 @@
     $("#screenRoot").innerHTML = `
       <section class="screen route-screen">
         <div class="route-map-wrap">
-          ${staticRouteMap(route)}
-          ${yandexStaticLayer(route)}
+          <div id="interactiveRouteMap" class="interactive-route-map" aria-label="Карта маршрута: масштабируй двумя пальцами или кнопками"></div>
+          <p class="map-status" id="mapStatus">Загружаем карту…</p>
           <div class="route-map-controls">
             ${backButton(fromFavorites ? "route-back-favorites" : "route-back-routes", "Назад")}
             <div class="route-map-right">
@@ -899,15 +920,53 @@
           <span class="route-cluster">${escapeHtml(route.clusterShortName || W.clusterName(route.clusterId))}</span>
           <h1 class="route-title">${escapeHtml(route.title)}</h1>
           <div class="route-meta">${routeMetaLine(route)}</div>
+          <p class="route-note">Пунктир соединяет места, а не тротуары. Для пути по улицам открой Я.Карты. Время прогулки — оценка без очередей.</p>
           <div class="route-steps">
             ${stops.map((stop, i) => routeStep(stop, i, stops.length)).join("")}
           </div>
           <div class="route-bottom">
-            <button type="button" class="btn btn-route" data-action="start-walk">${icon("i-play")} Начать прогулку</button>
+            <button type="button" class="btn btn-route" data-action="start-walk">${icon("i-play")} ${state.walk?.route.id === route.id ? "Продолжить прогулку" : "Начать прогулку"}</button>
           </div>
         </div>
       </section>`;
-    initYandexStaticLayer();
+    initInteractiveMap(route);
+  }
+
+  function initInteractiveMap(route) {
+    const container = $("#interactiveRouteMap");
+    const status = $("#mapStatus");
+    const stops = (route.stops || []).filter((s) => Array.isArray(s.coords) && s.coords.every(Number.isFinite));
+    if (!window.L || !container || !stops.length) {
+      if (status) status.textContent = "Карта недоступна. Открой маршрут в Я.Картах выше.";
+      return;
+    }
+    const L = window.L;
+    const map = L.map(container, { zoomControl: false, scrollWheelZoom: true, attributionControl: true });
+    state.map = map;
+    L.control.zoom({ position: "bottomright" }).addTo(map);
+    const tiles = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+    }).addTo(map);
+    tiles.on("tileload", () => { if (status) status.hidden = true; });
+    tiles.on("tileerror", () => {
+      if (status) { status.hidden = false; status.textContent = "Подложка недоступна — точки сохранены. Открой Я.Карты для навигации."; }
+    });
+    const points = stops.map((stop) => stop.coords);
+    const color = getComputedStyle(document.documentElement).getPropertyValue("--route").trim();
+    L.polyline(points, { color, weight: 4, dashArray: "7 8", opacity: .85 }).addTo(map);
+    stops.forEach((stop, i) => {
+      const marker = L.marker(stop.coords, {
+        title: stop.name,
+        icon: L.divIcon({ className: "route-pin", html: `<span>${i + 1}</span>`, iconSize: [32, 32], iconAnchor: [16, 16] })
+      }).addTo(map);
+      const content = document.createElement("button");
+      content.className = "map-place-button";
+      content.textContent = `${i + 1}. ${stop.name} · Подробнее →`;
+      content.addEventListener("click", () => navigate("place", { id: stop.id, from: "route", routeId: route.id }));
+      marker.bindPopup(content);
+    });
+    map.fitBounds(L.latLngBounds(points), { paddingTopLeft: [32, 70], paddingBottomRight: [45, 45], maxZoom: 16 });
+    requestAnimationFrame(() => { if (container.isConnected) map.invalidateSize(); });
   }
 
   function routeStep(stop, index, total) {
@@ -926,7 +985,7 @@
           <strong>${escapeHtml(stop.name.split("(")[0].trim())}</strong>
           <span>${subtitle}</span>
         </button>
-        ${finish ? "" : `<button type="button" class="icon-btn swap-btn" data-replace-stop="${stop.id}" aria-label="Уже был — заменить место">${icon("i-swap")}</button>`}
+        ${finish ? "" : `<button type="button" class="icon-btn swap-btn" data-replace-stop="${stop.id}" aria-label="Заменить место в маршруте">${icon("i-swap")}</button>`}
       </div>`;
   }
 
@@ -934,65 +993,37 @@
     const idx = route.stops.findIndex((s) => s.id === stopId);
     const stop = route.stops[idx];
     if (!stop) return;
-    state.memory.visitedPlaces[stop.id] = {
-      visitedAt: new Date().toISOString(),
-      reason: "Отметил в маршруте",
-      skipEvenNewExhibitions: false
-    };
-    delete state.memory.unvisitedChecked[stop.id];
-    persistMemory();
     const routeIds = new Set(route.stops.map((s) => s.id));
-    const prev = route.stops[idx - 1];
-    const next = route.stops[idx + 1];
-    const candidates = clusterPlaces(route.clusterId).filter((p) => {
-      if (routeIds.has(p.id)) return false;
-      if (state.memory.visitedPlaces[p.id]) return false;
-      if (state.memory.dislikedPlaces[p.id]) return false;
-      return true;
-    });
-    const distance = (a, b) => a && b ? window.WheeeOffline.haversineKm(a, b) : 99;
-    candidates.sort((a, b) => {
-      const da = Math.min(distance(a.coords, prev && prev.coords), distance(a.coords, next && next.coords));
-      const db = Math.min(distance(b.coords, prev && prev.coords), distance(b.coords, next && next.coords));
-      return da - db;
-    });
-    const replacement = candidates.find((p) => {
-      const d1 = prev ? distance(prev.coords, p.coords) : 0;
-      const d2 = next ? distance(p.coords, next.coords) : 0;
-      return d1 <= 3.4 && d2 <= 3.4;
-    });
-    if (!replacement) {
-      toast("Замен поблизости не нашлось");
+    const cluster = state.clusters.find((c) => c.id === route.clusterId);
+    if (!cluster) return;
+    const focus = route.focus || state.filters.focus;
+    const mode = route.durationMode || state.filters.duration;
+    const budget = { short: 90, medium: 150, long: 240 }[mode] || 150;
+    const indoor = (p) => p.category === "museum" || p.category === "exhibition";
+    const others = route.stops.filter((s) => s.id !== stopId);
+    const candidates = clusterPlaces(route.clusterId).filter((p) =>
+      !routeIds.has(p.id) && !state.memory.visitedPlaces[p.id] && !state.memory.dislikedPlaces[p.id] &&
+      Array.isArray(p.coords) && p.coords.every(Number.isFinite) &&
+      !(indoor(p) && others.some(indoor)) &&
+      (focus !== "nature" || p.category === "nature") &&
+      (focus !== "courtyard" || p.category === "courtyard")
+    ).sort((a, b) => window.WheeeOffline.haversineKm(a.coords, stop.coords) - window.WheeeOffline.haversineKm(b.coords, stop.coords));
+    let updated = null;
+    let replacement = null;
+    for (const candidate of candidates) {
+      if (window.WheeeOffline.haversineKm(candidate.coords, stop.coords) > 2.5) continue;
+      const trial = window.WheeeOffline.enrichRouteStops([...others, candidate], cluster, focus, state.memory, mode);
+      if (trial.metrics.totalDurationMin > budget) continue;
+      if (trial.stops.some((s) => s.walkFromPrevKm > 3.2)) continue;
+      if (window.WheeeOffline.validateRoute && !window.WheeeOffline.validateRoute(trial, { focus, duration: mode, clusterId: route.clusterId })) continue;
+      updated = { ...route, ...trial, id: route.id };
+      replacement = candidate;
+      break;
+    }
+    if (!updated) {
+      toast("Замены в пределах времени не нашлось. Попробуй другой маршрут");
       return;
     }
-    const newStop = {
-      ...replacement,
-      stepNumber: stop.stepNumber,
-      durationMin: Math.min(70, Math.max(25, replacement.durationMin || 40)),
-      walkFromPrevMin: stop.walkFromPrevMin || 10,
-      walkFromPrevKm: stop.walkFromPrevKm || 0.6
-    };
-    const stops = route.stops.slice();
-    stops[idx] = newStop;
-    let walkKm = 0.8;
-    stops.forEach((s, i) => {
-      if (i > 0) {
-        const km = +(window.WheeeOffline.haversineKm(stops[i - 1].coords, s.coords) * 1.32).toFixed(2);
-        s.walkFromPrevKm = km;
-        s.walkFromPrevMin = Math.max(4, Math.round((km / 4.4) * 60));
-        walkKm += km;
-      }
-    });
-    const updated = {
-      ...route,
-      stops,
-      metrics: {
-        ...route.metrics,
-        stopCount: stops.length,
-        totalWalkKm: +walkKm.toFixed(1)
-      },
-      mapLinks: window.WheeeOffline.buildMapLinks(stops)
-    };
     const routeIdx = state.routes.findIndex((r) => r.id === route.id);
     if (routeIdx >= 0) state.routes[routeIdx] = updated;
     try {
@@ -1052,12 +1083,15 @@
   function startWalk() {
     const route = routeFromParams();
     if (!route) return;
+    if (state.walk?.route.id === route.id) { navigate("walk", { routeId: route.id }); return; }
     state.walk = {
       route,
       index: 0,
       startedAt: Date.now(),
-      checked: {}
+      checked: {},
+      visited: {}
     };
+    persistWalk();
     navigate("walk", { routeId: route.id });
   }
 
@@ -1124,7 +1158,7 @@
         <div class="walk-photo">
           ${photoOrFallback(stop)}
           <div class="walk-photo-shade"></div>
-          <span class="pill pill-route walk-badge">Ты на месте · ${walk.index + 1} из ${stops.length}</span>
+          <span class="pill pill-route walk-badge">Место ${walk.index + 1} из ${stops.length}</span>
           <div class="walk-photo-text">
             <h1 class="${stop.name.length > 40 ? "walk-title-small" : ""}">${escapeHtml(stop.name.split("(")[0].trim())}</h1>
             <p>${escapeHtml(shortSubcategory(stop.subcategory, 52))} · м. ${escapeHtml((stop.metro || "—").split("/")[0].trim())}</p>
@@ -1163,12 +1197,14 @@
     clearInterval(walkTimer);
     if (!state.walk) return;
     const route = state.walk.route;
-    window.WheeeOffline.completeRoute(state.memory, route);
+    const visitedStops = route.stops.filter((stop) => state.walk.visited?.[stop.id]);
+    if (visitedStops.length) window.WheeeOffline.completeRoute(state.memory, { ...route, stops: visitedStops, metrics: { ...route.metrics, totalWalkKm: visitedStops.length === route.stops.length ? route.metrics.totalWalkKm : 0 } });
     persistMemory();
     state.walk = null;
+    persistWalk();
     state.memory.onboardingDone = true;
     persistMemory();
-    toast("Прогулка записана! Места добавлены в Память");
+    toast(visitedStops.length ? "Прогулка записана! Посещённые места добавлены в Память" : "Прогулка завершена. Все места пропущены");
     navigate("memory");
   }
 
@@ -1187,7 +1223,7 @@
     const step = inRoute && route ? route.stops.find((s) => s.id === p.id) : null;
     const wanted = Boolean(state.memory.wantedPlaces[p.id]);
     const visited = Boolean(state.memory.visitedPlaces[p.id]);
-    const entry = p.category === "nature" || p.category === "courtyard" ? "Свободный" : "По билетам";
+    const entry = p.entryPrice || p.price || (p.category === "nature" || p.category === "courtyard" ? "Уточни доступ" : "Уточни билеты");
     const chips = [
       `<span class="pill pill-route">${escapeHtml(categoryLabel(p.category))}</span>`,
       p.subcategory ? `<span class="pill">${escapeHtml(shortSubcategory(p.subcategory, 24))}</span>` : "",
@@ -1197,7 +1233,7 @@
       <section class="screen place-screen">
         <div class="place-gallery" id="placeGallery">
           <div class="place-track" id="placeTrack">
-            ${images.map((src, i) => `<div class="place-slide"><img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — фото ${i + 1}" loading="${i ? "lazy" : "eager"}"></div>`).join("")}
+            ${images.length ? images.map((src, i) => `<div class="place-slide"><img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — фото ${i + 1}" loading="${i ? "lazy" : "eager"}"></div>`).join("") : `<div class="place-slide"><span class="photo-fallback">${icon("i-building")}<span>Фото пока нет</span></span></div>`}
             <div class="place-slide place-add">
               <span class="place-add-icon">${icon("i-camera")}</span>
               <strong>Был здесь?</strong>
@@ -1206,13 +1242,13 @@
             </div>
           </div>
           <div class="place-progress">${images.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("")}</div>
-          <button type="button" class="place-tap place-tap-left" data-photo="prev" aria-label="Предыдущее фото"></button>
-          <button type="button" class="place-tap place-tap-right" data-photo="next" aria-label="Следующее фото"></button>
+          <button type="button" class="place-tap place-tap-left" data-photo="prev" aria-label="Предыдущее фото">‹</button>
+          <button type="button" class="place-tap place-tap-right" data-photo="next" aria-label="Следующее фото">›</button>
           <div class="place-controls">
             <button type="button" class="icon-btn icon-btn-on-photo" data-action="place-close" aria-label="Назад к карточкам">${icon("i-chevron-down")}</button>
             <button type="button" class="icon-btn icon-btn-on-photo" data-action="place-share" aria-label="Поделиться местом">${icon("i-share")}</button>
           </div>
-          <span class="photo-counter" id="photoCounter">1 / ${images.length} фото</span>
+          <span class="photo-counter" id="photoCounter">${images.length ? `1 / ${images.length} фото` : "Фото пока нет"}</span>
         </div>
         <div class="place-sheet">
           <div class="sheet-grabber"></div>
@@ -1223,9 +1259,12 @@
             <div class="place-facts">
               <div><span>Метро</span><strong><i class="metro-mark">М</i>${escapeHtml(p.metro || "—")}</strong></div>
               <div><span>На месте</span><strong>~${p.durationMin || 45} мин</strong></div>
-              <div><span>Вход</span><strong>${entry}</strong></div>
+              <div><span>Вход</span><strong>${escapeHtml(String(entry))}</strong></div>
             </div>
-            <p class="place-desc">${escapeHtml(p.description)}</p>
+            <p class="place-desc">${escapeHtml(p.description || "Описание скоро появится.")}</p>
+            ${p.address ? `<p class="place-address">${escapeHtml(p.address)}</p>` : ""}
+            ${Array.isArray(p.coords) ? `<a class="btn btn-secondary place-map-link" href="https://yandex.ru/maps/?pt=${encodeURIComponent(p.coords[1] + "," + p.coords[0])}&amp;z=17&amp;l=map" target="_blank" rel="noopener">${icon("i-walks")} Открыть на карте</a>` : ""}
+            ${/^https?:\/\//.test(p.website || p.url || "") ? `<a class="link-btn" href="${escapeHtml(p.website || p.url)}" target="_blank" rel="noopener">Часы работы и билеты ↗</a>` : `<p class="place-note">Перед выходом проверь часы работы и доступность входа в картах.</p>`}
             ${p.secretTip ? `<div class="secret-card"><span class="secret-mark">!</span><div><span class="secret-label">Секрет места</span><p>${escapeHtml(p.secretTip)}</p></div></div>` : ""}
             ${step ? `<button type="button" class="route-link" data-nav="route" data-route="${escapeHtml(route.id)}">${icon("i-walks")}<span>Шаг ${step.stepNumber} в маршруте «${escapeHtml(route.title)}»</span>${icon("i-chevron-right")}</button>` : ""}
           </div>
@@ -1246,7 +1285,7 @@
     const update = () => {
       const idx = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
       dots.forEach((d, i) => d.classList.toggle("on", i === idx));
-      if (counter) counter.textContent = `${Math.min(idx + 1, count)} / ${count} фото`;
+      if (counter) counter.textContent = !count ? "Фото пока нет" : idx >= count ? "Предложить фото" : `${idx + 1} / ${count} фото`;
     };
     track.addEventListener("scroll", update, { passive: true });
     $all("[data-photo]").forEach((btn) => {
@@ -1727,19 +1766,20 @@
   function renderSources() {
     const sources = [
       ["«Узнай Москву»", "um.mos.ru — места, дворы, усадьбы и палаты"],
-      ["KudaGo", "kudago.com — выставки, события и музейные программы"],
-      ["Официальные сайты музеев", "актуальные выставки, билеты и часы работы"],
+      ["KudaGo", state.sourcesMeta?.sourceStatus?.kudago === "unavailable" ? "Источник сейчас недоступен. Актуальная афиша не загружена." : "События из последней доступной выгрузки; проверяй даты у организатора"],
+      ["Сайты площадок", "Внешние ссылки для проверки часов работы и билетов; автоматическая загрузка расписаний не подключена"],
       ["Wikimedia Commons", "фотографии мест и галереи"],
-      ["Яндекс.Карты", "пешая маршрутизация и карта прогулки"],
+      ["Яндекс.Карты", "пешая навигация по внешней ссылке"],
       ["mos.ru", "городские парки, музеи и культурные площадки"],
-      ["OpenStreetMap", "координаты и ориентиры на местности"],
+      ["OpenStreetMap", "интерактивная карта и ориентиры на местности"],
       ["Open-Meteo", "погода для экрана прогулки"]
     ];
     $("#screenRoot").innerHTML = `
       <section class="screen sources-screen">
         <div class="topbar topbar-left">${backButton("sources-back", "Назад")}<strong>Источники данных</strong></div>
         <h1 class="screen-title">Откуда места</h1>
-        <p class="privacy-date">Приложение собирает данные из открытых городских источников.</p>
+        <p class="privacy-date">${state.places.length} мест в каталоге. ${state.sourcesMeta?.syncedAt ? `Обновлён ${escapeHtml(new Date(state.sourcesMeta.syncedAt).toLocaleDateString("ru-RU"))}.` : "Дата обновления неизвестна."}</p>
+        <p class="sources-note">${escapeHtml(state.sourcesMeta?.freshnessNote || "Каталог обновляется при публикации приложения. Перед выходом проверяй часы работы и билеты у площадки.")}</p>
         <div class="sources-list">
           ${sources.map(([name, text]) => `<div class="source-row"><strong>${name}</strong><span>${text}</span></div>`).join("")}
         </div>
@@ -1757,7 +1797,7 @@
   const privacySections = [
     ["Какие данные храним", "Почта и пароль — для входа (пароль хранит Firebase в зашифрованном виде, мы его не видим). Код приглашения — по нему ты зарегистрировался. Твоя «Память»: где был, что хочешь, пройденные маршруты, настройки.<br><br>Геолокация запрашивается только при нажатии «Рядом со мной» и не сохраняется на сервере."],
     ["Где хранятся", "Данные аккаунта — в Google Firebase (Authentication и Cloud Firestore), сервер во Франкфурте, Германия (europe-west3). Без аккаунта данные остаются в localStorage на устройстве."],
-    ["Кто ещё их видит", "Запись с твоей «Памятью» доступна только тебе по правилам Firestore. Google обрабатывает данные как поставщик инфраструктуры. Яндекс получает технический запрос на загрузку карты, но не твою почту и не отметки."],
+    ["Кто ещё их видит", "Запись с твоей «Памятью» доступна только тебе по правилам Firestore. Google обрабатывает данные как поставщик инфраструктуры. OpenStreetMap получает технические запросы на фрагменты карты (IP-адрес и область карты), но не почту и не отметки. Яндекс открывается только по внешней ссылке. Сайты фотографий получают запросы изображений."],
     ["Зачем", "Чтобы исключать места, где ты уже был, подбирать маршруты под вкус, синхронизировать устройства и пускать в приложение только по приглашениям. Рекламы и маркетинга нет."],
     ["Как удалить", "Напиши на a.n.sudakov@gmail.com с темой «Удалить аккаунт» — удалим данные в течение 30 дней. Локальные данные можно стереть в настройках браузера."],
     ["Кто отвечает", "ИП Судаков Александр Николаевич, ИНН 602506776119. Связь по любым вопросам о данных: a.n.sudakov@gmail.com."]
@@ -1784,8 +1824,10 @@
         <div class="topbar">${backButton("noroutes-back", "Назад")}</div>
         <div class="no-routes-body">
           <span class="empty-icon empty-icon-wow">${icon("i-memory")}</span>
-          <h1>${cluster ? `В районе «${escapeHtml(cluster)}» ты уже<br>всё видел` : "Здесь ты уже<br>всё видел"}</h1>
-          <p>Новых мест на ${durationFilterText()} здесь не осталось. Попробуй другой район или настроение.</p>
+          <h1>Подходящих прогулок<br>пока нет</h1>
+          <p>${state.filters.excludeRouteSignatures?.length ? "Другие сочетания с этими настройками закончились. " : ""}Не получилось собрать ${escapeHtml(cluster ? `маршрут в районе «${cluster}»` : "маршрут")} на ${durationFilterText()} с учётом твоих отметок. ${state.filters.focus === "exhibition" ? "На музей или выставку нужно заложить 1,5–2 часа, плюс дорогу. " : ""}Попробуй больше времени или другой район.</p>
+          ${state.filters.duration !== "long" ? `<button type="button" class="btn btn-secondary" data-action="noroutes-long">Выделить 4 часа</button>` : ""}
+          ${state.filters.excludeRouteSignatures?.length ? `<button type="button" class="btn btn-secondary" data-action="start-loading">Показать подборку снова</button>` : ""}
           <button type="button" class="btn btn-ink" data-action="noroutes-any">Любой район</button>
           <button type="button" class="btn btn-secondary" data-action="noroutes-mood">Сменить настроение</button>
           <button type="button" class="link-btn" data-action="noroutes-memory">Вернуть места из Памяти</button>
@@ -1818,13 +1860,28 @@
   };
 
   window.renderCurrentScreen = function () {
+    if (state.screen !== "route") clearRouteMap();
     const render = renderers[state.screen] || renderWalks;
     render();
   };
 
+  // Broken remote photos must not leave an empty or broken image in a card.
+  document.addEventListener("error", (event) => {
+    const img = event.target;
+    if (!(img instanceof HTMLImageElement) || !img.closest("#screenRoot") || img.classList.contains("wordmark") || img.classList.contains("leaflet-tile")) return;
+    const fallback = document.createElement("span");
+    fallback.className = `photo-fallback ${img.className}`;
+    fallback.setAttribute("role", "img");
+    fallback.setAttribute("aria-label", img.alt || "Фото недоступно");
+    fallback.innerHTML = icon("i-building");
+    img.replaceWith(fallback);
+  }, true);
+
   // ==================== EVENTS ====================
 
   document.addEventListener("click", (e) => {
+    const shareCard = e.target.closest("[data-share-route-index]");
+    if (shareCard) { shareRoute(state.routes[Number(shareCard.dataset.shareRouteIndex)]); return; }
     const nav = e.target.closest("[data-nav]");
     if (nav) {
       e.preventDefault();
@@ -1985,6 +2042,7 @@
     if (check && state.walk) {
       const i = Number(check.dataset.check);
       state.walk.checked[i] = !state.walk.checked[i];
+      persistWalk();
       renderWalk();
       return;
     }
@@ -2018,7 +2076,13 @@
       persistMemory();
       if (state.screen === "walks") renderWalks();
       else if (state.screen === "profile") renderProfile();
-    } else if (name === "start-loading") navigate("loading");
+    } else if (name === "refresh-routes") {
+      state.filters.excludeRouteSignatures = [...new Set([...(state.filters.excludeRouteSignatures || []), ...state.routes.map((route) => window.WheeeOffline.routeSignature(route.stops))])];
+      navigate("loading");
+    } else if (name === "start-loading") {
+      delete state.filters.excludeRouteSignatures;
+      navigate("loading");
+    }
     else if (name === "loading-cancel") navigate("walks", {}, { replace: true });
     else if (name === "routes-back") navigate("walks");
     else if (name === "share-route") shareRoute(state.routes[state.routeIndex]);
@@ -2038,11 +2102,22 @@
     } else if (name === "walk-skip") {
       if (!state.walk) return;
       state.walk.index += 1;
+      state.walk.checked = {};
+      persistWalk();
       if (state.walk.index >= state.walk.route.stops.length) finishWalk();
       else renderWalk();
     } else if (name === "walk-next") {
       if (!state.walk) return;
+      const stop = state.walk.route.stops[state.walk.index];
+      if (stop) {
+        state.walk.visited = state.walk.visited || {};
+        state.walk.visited[stop.id] = true;
+        state.memory.visitedPlaces[stop.id] = { visitedAt: new Date().toISOString(), reason: "Отметил на прогулке", skipEvenNewExhibitions: false };
+        persistMemory();
+      }
       state.walk.index += 1;
+      state.walk.checked = {};
+      persistWalk();
       if (state.walk.index >= state.walk.route.stops.length) finishWalk();
       else renderWalk();
     } else if (name === "place-close") closeAction();
@@ -2069,9 +2144,15 @@
     else if (name === "privacy-full") openSheet(fullPrivacyText());
     else if (name === "sources-back") navigate("more", {}, { replace: true });
     else if (name === "noroutes-back") navigate("walks");
-    else if (name === "noroutes-any") {
+    else if (name === "noroutes-long") {
+      state.filters.duration = "long";
+      delete state.filters.excludeRouteSignatures;
+      persistFilters();
+      navigate("loading");
+    } else if (name === "noroutes-any") {
       state.filters.clusterId = "any";
-      state.filters.focus = "mix";
+      state.filters.nearby = false;
+      delete state.filters.excludeRouteSignatures;
       persistFilters();
       navigate("walks");
     } else if (name === "noroutes-mood") navigate("walks");
@@ -2112,7 +2193,7 @@
 
   function shareRoute(route) {
     if (!route) return;
-    const text = `${route.title} — ${formatDuration(route.metrics.totalDurationMin)}, ${formatKm(route.metrics.totalWalkKm)}`;
+    const text = `${route.title} — ${formatDuration(route.metrics.totalDurationMin)}, ${formatKm(route.metrics.totalWalkKm)}\n${route.stops.map((stop, i) => `${i + 1}. ${stop.name}`).join("\n")}\n${route.mapLinks?.yandexWebUrl || ""}`;
     if (navigator.share) {
       navigator.share({ title: "Wheee!ekend", text }).catch(() => {});
     } else if (navigator.clipboard) {
@@ -2122,7 +2203,7 @@
 
   function sharePlace(p) {
     if (!p) return;
-    const text = `${p.name} — ${p.description}`;
+    const text = `${p.name} — ${p.description || ""}\n${Array.isArray(p.coords) ? `https://yandex.ru/maps/?pt=${p.coords[1]},${p.coords[0]}&z=17&l=map` : ""}`;
     if (navigator.share) navigator.share({ title: p.name, text }).catch(() => {});
     else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Ссылка скопирована")).catch(() => toast(text));
     else toast(text);
@@ -2130,7 +2211,7 @@
 
   function clearRouteMap() {
     if (state.map) {
-      try { state.map.destroy(); } catch (e) {}
+      try { if (state.map.remove) state.map.remove(); else state.map.destroy(); } catch (e) {}
       state.map = null;
     }
   }

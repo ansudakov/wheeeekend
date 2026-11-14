@@ -1,7 +1,8 @@
 /* Wheee!ekend — Service Worker.
    Кэширует оболочку приложения и базу мест, чтобы PWA запускалась
    с домашнего экрана даже без интернета и без запущенного Mac. */
-const VERSION = "wheee-v32";
+const VERSION = "wheee-v34";
+const LOCAL_PREVIEW = ["localhost", "127.0.0.1", "::1"].includes(self.location.hostname);
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
@@ -16,7 +17,16 @@ const SHELL_ASSETS = [
   "./",
   "index.html",
   "tokens.css",
+  "fonts/font-6.ttf",
+  "fonts/font-5.ttf",
+  "fonts/font-4.ttf",
+  "fonts/font-0.ttf",
+  "fonts/font-1.ttf",
+  "fonts/font-3.ttf",
+  "fonts/font-2.ttf",
   "styles.css",
+  "vendor/leaflet.js",
+  "vendor/leaflet.css",
   "icons.svg",
   "wordmark-light.svg",
   "wordmark-dark.svg",
@@ -64,7 +74,7 @@ self.addEventListener("activate", (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((key) => !key.startsWith(VERSION))
+          .filter((key) => key.startsWith("wheee-") && !key.startsWith(VERSION))
           .map((key) => caches.delete(key))
       );
       await self.clients.claim();
@@ -82,7 +92,10 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   const cache = await caches.open(cacheName);
   let response = null;
   try {
-    response = await fetch(request);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try { response = await fetch(request, { signal: controller.signal }); }
+    finally { clearTimeout(timeout); }
     if (response && response.ok) {
       cache.put(request, response.clone()).catch(() => null);
       return response;
@@ -125,12 +138,6 @@ async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   if (cached) {
-    // Тихо обновляем копию в фоне, если сеть доступна
-    fetch(request)
-      .then((response) => {
-        if (response && response.ok) cache.put(request, response.clone());
-      })
-      .catch(() => null);
     return cached;
   }
   const response = await fetch(request);
@@ -139,6 +146,7 @@ async function cacheFirst(request, cacheName) {
 }
 
 self.addEventListener("fetch", (event) => {
+  if (LOCAL_PREVIEW) return;
   const request = event.request;
   if (request.method !== "GET") return;
 
@@ -177,9 +185,14 @@ self.addEventListener("fetch", (event) => {
 
   // База мест: обновляем в фоне, но всегда отдаём быстро
   if (url.pathname === BUNDLE_PATH) {
-    event.respondWith(cacheFirst(request, DATA_CACHE));
+    event.respondWith(networkFirst(request, DATA_CACHE));
     return;
   }
 
+  if (/\/photos\//.test(url.pathname)) {
+    event.respondWith(cacheFirst(request, DATA_CACHE));
+    return;
+  }
+  // Versioned shell stays coherent until the next worker takes control.
   event.respondWith(cacheFirst(request, SHELL_CACHE));
 });
