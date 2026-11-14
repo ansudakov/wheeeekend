@@ -831,3 +831,48 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 }
 .interactive-route-map { bottom: 34px; }
 .interactive-route-map .leaflet-bottom { bottom: 3px; }
+
+/* Photo browsing and theme controls */
+.account-actions .btn-dark-secondary { color: var(--text-inverse); border-color: var(--text-inverse-muted); background: transparent; }
+.more-theme-picker { margin: 0 12px 12px; }
+.memory-screen .stats-card { margin-bottom: 20px; }
+.memory-screen .stats-card > div { padding: 0 4px; }
+.routes-refresh { box-shadow: var(--shadow-card); min-height: 56px; font-weight: 800; }
+.photo-arrow { display: flex; justify-content: center; align-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--overlay-photo); color: var(--paper); font-size: 28px; line-height: 1; }
+.swipe-photo-prev, .swipe-photo-next { position: absolute; top: 38%; z-index: 2; }
+.swipe-photo-prev { left: 10px; }
+.swipe-photo-next { right: 10px; }
+.swipe-photo-count { position: absolute; top: 28px; right: 14px; border-radius: 999px; padding: 5px 9px; background: var(--overlay-photo); color: var(--paper); font-size: 12px; font-weight: 700; }
+.swipe-category { max-width: calc(100% - 110px); }
+.swipe-stamp { z-index: 3; }
+.place-photo-open { display: block; width: 100%; height: 100%; }
+.place-photo-open img { user-select: none; -webkit-user-drag: none; }
+.place-controls { align-items: center; }
+.place-tap { top: 42%; }
+.photo-expand { position: absolute; bottom: 48px; left: 14px; width: 44px; height: 44px; border-radius: 50%; background: var(--overlay-photo); color: var(--paper); font-size: 27px; z-index: 2; }
+.photo-counter { pointer-events: none; }
+.photo-lightbox { position: fixed; inset: 0; z-index: 1000; background: var(--ink); color: var(--paper); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.lightbox-top { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; flex-shrink: 0; }
+.lightbox-count { font-size: 14px; font-weight: 700; }
+.lightbox-track { display: flex; flex: 1; min-height: 0; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior: contain; scrollbar-width: none; }
+.lightbox-track::-webkit-scrollbar { display: none; }
+.lightbox-slide { flex: 0 0 100%; width: 100%; height: 100%; scroll-snap-align: center; display: flex; align-items: center; justify-content: center; }
+.lightbox-slide img { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+.lightbox-caption { flex-shrink: 0; padding: 16px 24px 20px; font-size: 13px; text-align: center; max-height: 100px; overflow-y: auto; }
+.lightbox-prev, .lightbox-next { position: absolute; top: 48%; z-index: 2; }
+.lightbox-prev { left: 12px; }
+.lightbox-next { right: 12px; }
+.loading-route { animation: drawRouteLoop 1.8s var(--ease-out) infinite; }
+@keyframes drawRouteLoop { 0% { stroke-dashoffset: 420; opacity: .45; } 65%, 82% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: -420; opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .loading-route { animation: none; stroke-dashoffset: 0; } }
+/* Instagram-like place gallery: dots, independent from Tinder's photo bars. */
+.place-progress { top: auto; bottom: 55px; left: 74px; right: 100px; display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+.place-progress span { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: var(--text-inverse-muted); box-shadow: 0 1px 3px var(--overlay-photo); }
+.place-progress span.on { background: var(--paper); transform: scale(1.25); }
+.place-controls { left: auto; right: 14px; justify-content: flex-end; }
+.place-sheet-top { position: relative; height: 36px; min-height: 36px; display: flex; justify-content: center; padding-top: 1px; }
+.place-sheet-top .sheet-grabber { align-self: flex-start; }
+.place-collapse { position: absolute; right: -8px; top: -5px; width: 44px; height: 44px; min-width: 44px; border: 0; background: transparent; color: var(--text-muted); }
+.place-content .place-chips { margin-top: 2px; }
+.place-tap, .swipe-photo-prev, .swipe-photo-next { background: radial-gradient(circle, var(--overlay-photo) 0 50%, transparent 53%); font-size: 24px; }
+.photo-expand { width: 44px; height: 44px; font-size: 23px; background: radial-gradient(circle, var(--overlay-photo) 0 50%, transparent 53%); }

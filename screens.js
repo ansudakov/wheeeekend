@@ -18,6 +18,7 @@
   const PRIVACY_DATE = "11 ноября 2026";
   const APP_VERSION = "1.0.0";
   let favTab = "routes";
+  let favTabChosen = false;
   let favSort = "desc";
   let memoryTab = "visited";
   let installTab = "iphone";
@@ -34,6 +35,11 @@
       if (state.walk) localStorage.setItem(ACTIVE_WALK_KEY, JSON.stringify(state.walk));
       else localStorage.removeItem(ACTIVE_WALK_KEY);
     } catch (e) {}
+  }
+
+  function visitMinutes(p) {
+    const isSuburb = state.clusters.some((cluster) => cluster.id === p.clusterId && cluster.areaType === "suburb");
+    return window.WheeeOffline.realisticStopDurationMin(p, state.filters.duration, isSuburb);
   }
 
   function formatWalk(km) {
@@ -217,7 +223,7 @@
       <span>·</span>
       <span>${escapeHtml(W.clusterName(placeData.clusterId))}</span>
       <span>·</span>
-      <span>${placeData.durationMin || 45} мин</span>`;
+      <span>${visitMinutes(placeData)} мин</span>`;
   }
 
   function swipeCard(placeData, index) {
@@ -227,8 +233,9 @@
       <article class="swipe-card ${index === 0 ? "swipe-card-top" : "swipe-card-under"}" data-card-index="${index}" ${index === 0 ? 'data-place-id="' + placeData.id + '"' : ""}>
         ${images[0] ? `<img class="swipe-photo" src="${escapeHtml(images[0])}" alt="${escapeHtml(placeData.name)}" draggable="false">` : `<span class="photo-fallback swipe-photo">${icon("i-building")}</span>`}
         <div class="swipe-shade"></div>
-        <div class="swipe-photos">${images.slice(0, 2).map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("")}</div>
+        <div class="swipe-photos">${images.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("")}</div>
         <span class="swipe-category">${escapeHtml(categoryLabel(placeData.category))}</span>
+        ${images.length > 1 ? `<span class="swipe-photo-count">1 / ${images.length}</span><button type="button" class="photo-arrow swipe-photo-prev" data-swipe-photo="-1" aria-label="Предыдущее фото">‹</button><button type="button" class="photo-arrow swipe-photo-next" data-swipe-photo="1" aria-label="Следующее фото">›</button>` : ""}
         <div class="swipe-stamp stamp-like">ХОЧУ</div>
         <div class="swipe-stamp stamp-no">НЕ МОЁ</div>
         <div class="swipe-stamp stamp-visited">УЖЕ БЫЛ</div>
@@ -318,6 +325,11 @@
         if (dx > threshold) return runSwipe("right");
         if (dx < -threshold) return runSwipe("left");
       }
+      if (event.type === "pointerup" && Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+        const rect = card.getBoundingClientRect();
+        if (startX - rect.left < rect.width * .35) changeSwipePhoto(-1);
+        else if (startX - rect.left > rect.width * .65) changeSwipePhoto(1);
+      }
       dx = 0; dy = 0;
       card.style.transform = "";
       like.style.opacity = 0; no.style.opacity = 0; visited.style.opacity = 0;
@@ -338,6 +350,26 @@
     });
     card.addEventListener("pointerup", finish);
     card.addEventListener("pointercancel", finish);
+  }
+
+  function changeSwipePhoto(direction) {
+    const card = $(".swipe-card-top");
+    const current = currentSwipePlace();
+    if (!card || !current || state.swipe.busy) return;
+    const images = dedupeImages(current);
+    if (images.length < 2) return;
+    const index = ((Number(card.dataset.photoIndex) || 0) + direction + images.length) % images.length;
+    card.dataset.photoIndex = String(index);
+    const old = $(".swipe-photo", card);
+    const img = document.createElement("img");
+    img.className = "swipe-photo";
+    img.alt = `${current.name} — фото ${index + 1}`;
+    img.draggable = false;
+    img.src = images[index];
+    old.replaceWith(img);
+    $all(".swipe-photos span", card).forEach((bar, i) => bar.classList.toggle("on", i === index));
+    const counter = $(".swipe-photo-count", card);
+    if (counter) counter.textContent = `${index + 1} / ${images.length}`;
   }
 
   function snapshotPlaceAction(id) {
@@ -655,7 +687,7 @@
           ${routes.map((r, idx) => routeCard(r, idx)).join("")}
         </div>
         <div class="carousel-dots">${routes.map((_, i) => `<span class="${i === state.routeIndex ? "on" : ""}"></span>`).join("")}</div>
-        <button type="button" class="btn btn-secondary routes-refresh" data-action="refresh-routes">${icon("i-swap")} Предложить другие маршруты</button>
+        <button type="button" class="btn btn-route routes-refresh" data-action="refresh-routes">${icon("i-swap")} Предложить другие маршруты</button>
         <p class="routes-help">Новая подборка с теми же настройками. Район, настроение и время можно изменить сверху.</p>
       </section>`;
     requestAnimationFrame(() => {
@@ -1233,35 +1265,31 @@
       <section class="screen place-screen">
         <div class="place-gallery" id="placeGallery">
           <div class="place-track" id="placeTrack">
-            ${images.length ? images.map((src, i) => `<div class="place-slide"><img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — фото ${i + 1}" loading="${i ? "lazy" : "eager"}"></div>`).join("") : `<div class="place-slide"><span class="photo-fallback">${icon("i-building")}<span>Фото пока нет</span></span></div>`}
-            <div class="place-slide place-add">
-              <span class="place-add-icon">${icon("i-camera")}</span>
-              <strong>Был здесь?</strong>
-              <p>Добавь своё фото — оно поможет другим решить, идти или нет.</p>
-              <a class="link-btn" href="${feedbackMail}">Предложить фото</a>
-            </div>
+            ${images.length ? images.map((src, i) => `<div class="place-slide"><button type="button" class="place-photo-open" data-lightbox-index="${i}" aria-label="Открыть фото ${i + 1} на весь экран"><img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — фото ${i + 1}" loading="${i ? "lazy" : "eager"}"></button></div>`).join("") : `<div class="place-slide"><span class="photo-fallback">${icon("i-building")}<span>Фото пока нет</span></span></div>`}
+
           </div>
           <div class="place-progress">${images.map((_, i) => `<span class="${i === 0 ? "on" : ""}"></span>`).join("")}</div>
-          <button type="button" class="place-tap place-tap-left" data-photo="prev" aria-label="Предыдущее фото">‹</button>
-          <button type="button" class="place-tap place-tap-right" data-photo="next" aria-label="Следующее фото">›</button>
+          ${images.length > 1 ? `<button type="button" class="place-tap place-tap-left" data-photo="prev" aria-label="Предыдущее фото">‹</button>
+          <button type="button" class="place-tap place-tap-right" data-photo="next" aria-label="Следующее фото">›</button>` : ""}
           <div class="place-controls">
-            <button type="button" class="icon-btn icon-btn-on-photo" data-action="place-close" aria-label="Назад к карточкам">${icon("i-chevron-down")}</button>
             <button type="button" class="icon-btn icon-btn-on-photo" data-action="place-share" aria-label="Поделиться местом">${icon("i-share")}</button>
           </div>
+          ${images.length ? `<button type="button" class="photo-expand" data-lightbox-current aria-label="Развернуть фото">⛶</button>` : ""}
           <span class="photo-counter" id="photoCounter">${images.length ? `1 / ${images.length} фото` : "Фото пока нет"}</span>
         </div>
         <div class="place-sheet">
-          <div class="sheet-grabber"></div>
+          <div class="place-sheet-top"><div class="sheet-grabber"></div><button type="button" class="icon-btn place-collapse" data-action="place-close" aria-label="Свернуть карточку места">${icon("i-chevron-down")}</button></div>
           <div class="place-content">
             <div class="place-chips">${chips}</div>
             <h1 class="place-title">${escapeHtml(p.name.split("(")[0].trim())}</h1>
             <p class="place-subtitle">${escapeHtml(shortSubcategory(p.subcategory, 46))}${p.clusterId ? ` · ${escapeHtml(W.clusterName(p.clusterId))}` : ""}</p>
             <div class="place-facts">
               <div><span>Метро</span><strong><i class="metro-mark">М</i>${escapeHtml(p.metro || "—")}</strong></div>
-              <div><span>На месте</span><strong>~${p.durationMin || 45} мин</strong></div>
+              <div><span>На месте</span><strong>~${visitMinutes(p)} мин</strong></div>
               <div><span>Вход</span><strong>${escapeHtml(String(entry))}</strong></div>
             </div>
             <p class="place-desc">${escapeHtml(p.description || "Описание скоро появится.")}</p>
+            ${!images.length ? `<a class="link-btn" href="${feedbackMail}">Предложить фото</a>` : ""}
             ${p.address ? `<p class="place-address">${escapeHtml(p.address)}</p>` : ""}
             ${Array.isArray(p.coords) ? `<a class="btn btn-secondary place-map-link" href="https://yandex.ru/maps/?pt=${encodeURIComponent(p.coords[1] + "," + p.coords[0])}&amp;z=17&amp;l=map" target="_blank" rel="noopener">${icon("i-walks")} Открыть на карте</a>` : ""}
             ${/^https?:\/\//.test(p.website || p.url || "") ? `<a class="link-btn" href="${escapeHtml(p.website || p.url)}" target="_blank" rel="noopener">Часы работы и билеты ↗</a>` : `<p class="place-note">Перед выходом проверь часы работы и доступность входа в картах.</p>`}
@@ -1291,9 +1319,70 @@
     $all("[data-photo]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const dir = btn.dataset.photo === "next" ? 1 : -1;
-        track.scrollBy({ left: dir * track.clientWidth, behavior: "smooth" });
+        const current = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+        const next = (current + dir + count) % count;
+        track.scrollTo({ left: next * track.clientWidth, behavior: "smooth" });
       });
     });
+  }
+
+  let lightboxCleanup = null;
+  function closePhotoLightbox() {
+    if (lightboxCleanup) lightboxCleanup();
+  }
+
+  function openPhotoLightbox(p, initialIndex) {
+    const images = dedupeImages(p);
+    if (!images.length) return;
+    closePhotoLightbox();
+    const previousFocus = document.activeElement;
+    const previousOverflow = document.body.style.overflow;
+    const dialog = document.createElement("div");
+    dialog.className = "photo-lightbox";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-label", `Фотографии: ${p.name}`);
+    dialog.innerHTML = `<div class="lightbox-top"><span class="lightbox-count" aria-live="polite"></span><button type="button" class="icon-btn icon-btn-on-photo" data-lightbox-close aria-label="Закрыть фотографии">${icon("i-close")}</button></div>
+      <div class="lightbox-track">${images.map((src, i) => `<div class="lightbox-slide"><img src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — фото ${i + 1}" draggable="false" loading="${i === initialIndex ? "eager" : "lazy"}"></div>`).join("")}</div>
+      ${images.length > 1 ? `<button type="button" class="photo-arrow lightbox-prev" aria-label="Предыдущее фото">‹</button><button type="button" class="photo-arrow lightbox-next" aria-label="Следующее фото">›</button>` : ""}
+      <p class="lightbox-caption">${escapeHtml(p.name)}</p>`;
+    document.body.appendChild(dialog);
+    document.body.style.overflow = "hidden";
+    const track = $(".lightbox-track", dialog);
+    const close = $("[data-lightbox-close]", dialog);
+    const counter = $(".lightbox-count", dialog);
+    let index = Math.max(0, Math.min(images.length - 1, initialIndex));
+    const update = () => {
+      index = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      counter.textContent = `${index + 1} / ${images.length}`;
+    };
+    const move = (direction) => {
+      index = (index + direction + images.length) % images.length;
+      track.scrollTo({ left: index * track.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+    };
+    const onKey = (event) => {
+      if (event.key === "Escape") { event.preventDefault(); closePhotoLightbox(); }
+      if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
+      if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
+      if (event.key === "Tab") {
+        const buttons = $all("button", dialog);
+        const at = buttons.indexOf(document.activeElement);
+        const next = event.shiftKey ? (at - 1 + buttons.length) % buttons.length : (at + 1) % buttons.length;
+        event.preventDefault(); buttons[next].focus();
+      }
+    };
+    close.addEventListener("click", closePhotoLightbox);
+    $(".lightbox-prev", dialog)?.addEventListener("click", () => move(-1));
+    $(".lightbox-next", dialog)?.addEventListener("click", () => move(1));
+    track.addEventListener("scroll", update, { passive: true });
+    document.addEventListener("keydown", onKey);
+    lightboxCleanup = () => {
+      dialog.remove(); document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKey); lightboxCleanup = null;
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+    track.scrollLeft = index * track.clientWidth;
+    update(); close.focus({ preventScroll: true });
   }
 
   function placeAction(action) {
@@ -1344,7 +1433,7 @@
   // ==================== FAVORITES ====================
 
   function renderFavorites() {
-    if (state.params.tab === "places" || state.params.tab === "routes") favTab = state.params.tab;
+    if (state.params.tab === "places" || state.params.tab === "routes") { favTab = state.params.tab; favTabChosen = true; }
     const sortSign = favSort === "desc" ? -1 : 1;
     const routes = Object.values(state.memory.savedRoutes || {}).sort((a, b) => sortSign * String(a.savedAt || "").localeCompare(String(b.savedAt || "")));
     const places = Object.values(state.memory.wantedPlaces || {})
@@ -1352,6 +1441,7 @@
       .map((x) => ({ ...place(x.id), wantedAt: x.iso }))
       .filter((p) => p && p.id)
       .sort((a, b) => sortSign * String(a.wantedAt || "").localeCompare(String(b.wantedAt || "")));
+    if (!favTabChosen) favTab = !routes.length && places.length ? "places" : "routes";
     $("#screenRoot").innerHTML = `
       <section class="screen favorites">
         <div class="page-head"><h1 class="screen-title">Избранное</h1><button type="button" class="icon-btn" data-action="favorites-sort" aria-label="Сортировка">${icon("i-filter")}</button></div>
@@ -1396,7 +1486,7 @@
     return `
       <article class="fav-place">
         <button type="button" class="fav-place-photo" data-place="${p.id}" data-from="favorites">${photoOrFallback(p)}</button>
-        <button type="button" class="fav-place-text" data-place="${p.id}" data-from="favorites"><span class="route-cluster">${escapeHtml(categoryLabel(p.category))}</span><strong>${escapeHtml(p.name.split("(")[0].trim())}</strong><span>м. ${escapeHtml(p.metro || "—")} · ${p.durationMin || 45} мин</span></button>
+        <button type="button" class="fav-place-text" data-place="${p.id}" data-from="favorites"><span class="route-cluster">${escapeHtml(categoryLabel(p.category))}</span><strong>${escapeHtml(p.name.split("(")[0].trim())}</strong><span>м. ${escapeHtml(p.metro || "—")} · ${visitMinutes(p)} мин</span></button>
         <button type="button" class="heart-btn heart-btn-light" data-remove-wanted="${escapeHtml(p.id)}" aria-label="Убрать из избранного">${icon("i-heart")}</button>
       </article>`;
   }
@@ -1407,7 +1497,7 @@
         <span class="empty-icon">${icon(favTab === "routes" ? "i-heart" : "i-building")}</span>
         <h2>Пока пусто</h2>
         <p>${favTab === "routes" ? "Жми ♥ на маршруте — он сохранится здесь, даже без интернета." : "Свайпай место вправо — оно появится здесь, даже без интернета."}</p>
-        <button type="button" class="btn btn-ink" data-action="empty-swipe">Свайпнуть новые места</button>
+        ${favTab === "routes" ? `<button type="button" class="btn btn-ink" data-nav="walks">Подобрать маршрут</button>` : `<button type="button" class="btn btn-ink" data-action="empty-swipe">Свайпнуть новые места</button>`}
       </div>`;
   }
 
@@ -1466,7 +1556,7 @@
         <div class="page-head"><h1 class="screen-title">Память</h1></div>
         <div class="stats-card ${stats.km ? "" : "stats-two"}">
           <div><strong class="text-route">${stats.visited}</strong><span>мест открыто</span></div>
-          <div><strong>${stats.walks}</strong><span>прогулки</span></div>
+          <div><strong>${stats.walks}</strong><span>${plural(stats.walks, "прогулка", "прогулки", "прогулок")}</span></div>
           ${stats.km ? `<div><strong>${String(stats.km).replace(".", ",")}<small> км</small></strong><span>пешком</span></div>` : ""}
         </div>
         <div class="segmented segmented-3">
@@ -1539,7 +1629,10 @@
           ${icon("i-chevron-right")}
         </button>
         <div class="settings-list">
-          <button type="button" class="settings-row" data-nav="profile"><span>${icon("i-moon")}</span><strong>Тема оформления</strong><em>${themeName()}</em></button>
+          <div class="settings-row"><span>${icon("i-moon")}</span><strong>Тема оформления</strong><em>${themeName()}</em></div>
+          <div class="more-theme-picker segmented segmented-3" role="group" aria-label="Тема оформления">
+            ${[["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]].map(([value, label]) => `<button type="button" class="${W.currentTheme() === value ? "active" : ""}" data-theme-choice="${value}" aria-pressed="${W.currentTheme() === value}">${label}</button>`).join("")}
+          </div>
           <button type="button" class="settings-row" data-nav="install" data-from="more"><span>${icon("i-install")}</span><strong>Установить на экран «Домой»</strong></button>
           <div class="settings-row"><span>${icon("i-check")}</span><strong>Офлайн-режим</strong><em class="text-route">${"serviceWorker" in navigator ? "Включён" : "Недоступен"}</em></div>
           <button type="button" class="settings-row" data-nav="sources"><span>${icon("i-doc")}</span><strong>Источники данных</strong></button>
@@ -1680,8 +1773,9 @@
           }
           try {
             const found = await c.checkInvite(code);
+            if (!invite.isConnected || invite.value.trim() !== code) return;
             if (!found) throw new Error("NOT_FOUND");
-            if (found.usedBy) {
+            if (found.usedBy && found.usedBy !== c.currentUser()?.uid) {
               status.textContent = "Этот код уже активирован. Попроси новый у того, кто пригласил";
               status.className = "field-status error";
               inviteOk = false;
@@ -1691,6 +1785,7 @@
               inviteOk = true;
             }
           } catch (e) {
+            if (!invite.isConnected || invite.value.trim() !== code) return;
             status.textContent = navigator.onLine
               ? "Такого кода нет. Проверь написание — коды пишутся строчными латинскими буквами через дефис."
               : "Регистрации нужен интернет. Попробуй, когда появится сеть.";
@@ -1860,6 +1955,7 @@
   };
 
   window.renderCurrentScreen = function () {
+    closePhotoLightbox();
     if (state.screen !== "route") clearRouteMap();
     const render = renderers[state.screen] || renderWalks;
     render();
@@ -1868,7 +1964,7 @@
   // Broken remote photos must not leave an empty or broken image in a card.
   document.addEventListener("error", (event) => {
     const img = event.target;
-    if (!(img instanceof HTMLImageElement) || !img.closest("#screenRoot") || img.classList.contains("wordmark") || img.classList.contains("leaflet-tile")) return;
+    if (!(img instanceof HTMLImageElement) || !img.closest("#screenRoot, .photo-lightbox") || img.classList.contains("wordmark") || img.classList.contains("leaflet-tile")) return;
     const fallback = document.createElement("span");
     fallback.className = `photo-fallback ${img.className}`;
     fallback.setAttribute("role", "img");
@@ -1880,6 +1976,14 @@
   // ==================== EVENTS ====================
 
   document.addEventListener("click", (e) => {
+    const fullPhoto = e.target.closest("[data-lightbox-index], [data-lightbox-current]");
+    if (fullPhoto) {
+      const p = place(state.params.id);
+      const track = $("#placeTrack");
+      const idx = fullPhoto.hasAttribute("data-lightbox-current") ? Math.round(track.scrollLeft / Math.max(1, track.clientWidth)) : Number(fullPhoto.dataset.lightboxIndex);
+      if (p) openPhotoLightbox(p, idx);
+      return;
+    }
     const shareCard = e.target.closest("[data-share-route-index]");
     if (shareCard) { shareRoute(state.routes[Number(shareCard.dataset.shareRouteIndex)]); return; }
     const nav = e.target.closest("[data-nav]");
@@ -1946,6 +2050,8 @@
       return;
     }
 
+    const swipePhoto = e.target.closest("[data-swipe-photo]");
+    if (swipePhoto) { changeSwipePhoto(Number(swipePhoto.dataset.swipePhoto)); return; }
     const swipe = e.target.closest("[data-swipe]");
     if (swipe) {
       runSwipe(swipe.dataset.swipe);
@@ -1975,6 +2081,7 @@
     const favTabBtn = e.target.closest("[data-fav-tab]");
     if (favTabBtn) {
       favTab = favTabBtn.dataset.favTab;
+      favTabChosen = true;
       state.params.tab = favTab;
       renderFavorites();
       return;
@@ -2027,7 +2134,8 @@
     const themeChoice = e.target.closest("[data-theme-choice]");
     if (themeChoice) {
       W.applyTheme(themeChoice.dataset.themeChoice);
-      renderProfile();
+      if (state.screen === "more") renderMore();
+      else renderProfile();
       return;
     }
 

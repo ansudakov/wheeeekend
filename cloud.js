@@ -272,12 +272,12 @@
     return data;
   }
 
-  async function fsPatch(path, fields, maskKeys) {
+  async function fsPatch(path, fields, maskKeys, createOnly = false) {
     const session = await ensureToken();
     const query = maskKeys
       .map((key) => `updateMask.fieldPaths=${encodeURIComponent(key)}`)
       .join("&");
-    const url = `${docsUrl(path)}?${query}`;
+    const url = `${docsUrl(path)}?${query}${createOnly ? "&currentDocument.exists=false" : ""}`;
 
     let { res, data } = await httpJson(url, {
       method: "PATCH",
@@ -300,6 +300,7 @@
       }));
     }
 
+    if (createOnly && (res.status === 409 || res.status === 412 || ["FAILED_PRECONDITION", "ALREADY_EXISTS"].includes(data?.error?.status))) throw new CloudError("DOCUMENT_EXISTS", "Запись уже создана");
     if (!res.ok) throw firestoreErrorMessage(res, data);
     return data;
   }
@@ -362,49 +363,60 @@
 
   // ==================== РЕГИСТРАЦИЯ И ВХОД ====================
 
-  async function register({ email, password, inviteCode }) {
-    const code = normalizeCode(inviteCode);
-    if (!code) throw new CloudError("INVITE_REQUIRED", "Введите код приглашения.");
-
-    // Код проверяем до создания аккаунта, чтобы не плодить пустые учётки.
-    const invite = await getInvite(code);
-    if (!invite) {
-      throw new CloudError("INVITE_NOT_FOUND", "Код приглашения не найден. Проверьте написание.");
-    }
-    if (invite.usedBy) {
-      throw new CloudError("INVITE_USED", "Этот код уже использован.");
-    }
-
-    const data = await authCall("signUp", {
-      email: String(email || "").trim(),
-      password,
-      returnSecureToken: true
-    });
-    const session = sessionFromAuth(data);
-    state.session = session;
-    state.user = { uid: session.uid, email: session.email };
-    writeSession({ ...session, inviteCode: code });
-
-    // Сначала закрепляем приглашение за собой, потом создаём документ памяти:
-    // так правила Firestore могут проверить, что пользователь пришёл по коду.
+  async function finishRegistration(code) {
+    const session = state.session;
     await claimInvite(code, session.uid);
-    await fsPatch(
-      `users/${encodeURIComponent(session.uid)}`,
-      {
-        email: { stringValue: session.email || "" },
-        inviteCode: { stringValue: code },
-        payload: { stringValue: JSON.stringify({}) },
-        updatedAt: { timestampValue: new Date().toISOString() },
-        app: { stringValue: "Wheee!ekend" }
-      },
-      ["email", "inviteCode", "payload", "updatedAt", "app"]
-    );
-
+    try {
+      // Creation is conditional: a retried/lost response must never erase memory.
+      await fsPatch(
+        `users/${encodeURIComponent(session.uid)}`,
+        {
+          email: { stringValue: session.email || "" },
+          inviteCode: { stringValue: code },
+          payload: { stringValue: JSON.stringify({}) },
+          updatedAt: { timestampValue: new Date().toISOString() },
+          app: { stringValue: "Wheee!ekend" }
+        },
+        ["email", "inviteCode", "payload", "updatedAt", "app"],
+        true
+      );
+    } catch (error) {
+      if (error.code !== "DOCUMENT_EXISTS") throw error;
+      // Read verifies that the existing document is accessible to this session.
+      const existing = await fsGet(`users/${encodeURIComponent(session.uid)}`);
+      if (!existing) throw error;
+    }
+    state.session = { ...state.session, inviteCode: code, pendingRegistration: false };
+    writeSession(state.session);
     notify();
     return state.user;
   }
 
+  async function register({ email, password, inviteCode }) {
+    const code = normalizeCode(inviteCode);
+    const address = String(email || "").trim();
+    if (!code) throw new CloudError("INVITE_REQUIRED", "Введите код приглашения.");
+    const invite = await getInvite(code);
+    if (!invite) throw new CloudError("INVITE_NOT_FOUND", "Код приглашения не найден. Проверьте написание.");
+    const pending = state.session && state.session.pendingRegistration &&
+      String(state.session.email || "").toLowerCase() === address.toLowerCase();
+    if (invite.usedBy && (!pending || invite.usedBy !== state.session.uid)) {
+      throw new CloudError("INVITE_USED", "Этот код уже использован.");
+    }
+    if (!pending) {
+      const data = await authCall("signUp", { email: address, password, returnSecureToken: true });
+      state.session = { ...sessionFromAuth(data), inviteCode: code, pendingRegistration: true };
+      state.user = { uid: state.session.uid, email: state.session.email };
+    } else {
+      state.session = { ...state.session, inviteCode: code };
+    }
+    // Persist the recovery state before either Firestore request can fail.
+    writeSession(state.session);
+    return finishRegistration(code);
+  }
+
   async function signIn({ email, password }) {
+    const previous = readSession();
     const data = await authCall("signInWithPassword", {
       email: String(email || "").trim(),
       password,
@@ -413,7 +425,11 @@
     const session = sessionFromAuth(data);
     state.session = session;
     state.user = { uid: session.uid, email: session.email };
-    writeSession(session);
+    if (previous && previous.uid === session.uid && previous.pendingRegistration && previous.inviteCode) {
+      state.session = { ...session, pendingRegistration: true, inviteCode: previous.inviteCode };
+      writeSession(state.session);
+      await finishRegistration(previous.inviteCode);
+    } else writeSession(session);
     notify();
 
     // Если аккаунт создавали на другом устройстве — подтянем код приглашения,
@@ -422,7 +438,8 @@
       const doc = await fsGet(`users/${encodeURIComponent(session.uid)}`);
       const decoded = decodeDoc(doc);
       if (decoded.inviteCode) {
-        writeSession({ ...session, inviteCode: decoded.inviteCode });
+        state.session = { ...state.session, inviteCode: decoded.inviteCode };
+        writeSession(state.session);
       }
     } catch (e) {
       // Не критично: доступ проверится при первом сохранении.

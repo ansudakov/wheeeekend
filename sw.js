@@ -1,7 +1,7 @@
 /* Wheee!ekend — Service Worker.
    Кэширует оболочку приложения и базу мест, чтобы PWA запускалась
    с домашнего экрана даже без интернета и без запущенного Mac. */
-const VERSION = "wheee-v34";
+const VERSION = "wheee-v35";
 const LOCAL_PREVIEW = ["localhost", "127.0.0.1", "::1"].includes(self.location.hostname);
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
@@ -52,16 +52,14 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
       const shell = await caches.open(SHELL_CACHE);
-      await Promise.allSettled(
-        SHELL_ASSETS.map((url) =>
-          shell.add(new Request(url, { cache: "reload" })).catch(() => null)
-        )
+      // Do not replace the working offline app with a partially downloaded shell.
+      // A failed install leaves the previous active worker and its caches intact.
+      await Promise.all(
+        SHELL_ASSETS.map((url) => shell.add(new Request(url, { cache: "reload" })))
       );
       const data = await caches.open(DATA_CACHE);
-      await Promise.allSettled(
-        DATA_ASSETS.map((url) =>
-          data.add(new Request(url, { cache: "reload" })).catch(() => null)
-        )
+      await Promise.all(
+        DATA_ASSETS.map((url) => data.add(new Request(url, { cache: "reload" })))
       );
       await self.skipWaiting();
     })()
