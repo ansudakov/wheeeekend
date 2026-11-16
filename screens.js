@@ -8,7 +8,7 @@
     state, $, $all, icon, escapeHtml, plural, formatSteps, formatKm,
     formatDuration, formatDurationLong, shortDate, savedLabel,
     completedLabel, categoryLabel, moodLabel, place, clusterPlaces,
-    toast, openSheet, navigate, closeAction, imageFor, dedupeImages,
+    toast, openSheet, openConfirm, navigate, closeAction, imageFor, dedupeImages,
     firstSentence, splitChecklist, unseenExhibition, archetype, persistMemory,
     persistFilters, syncCloud, cloud, updateAccount, closestCluster
   } = W;
@@ -267,6 +267,12 @@
     }
     const sw = state.swipe;
     const isCalibration = sw.mode !== "discoveries";
+    if (isCalibration && sw.done >= sw.limit) {
+      state.memory.onboardingDone = true;
+      persistMemory();
+      navigate("taste", {}, { replace: true });
+      return;
+    }
     const placeData = currentSwipePlace();
     if (!placeData) {
       $("#screenRoot").innerHTML = `
@@ -459,6 +465,17 @@
     state.swipe.lastAction = state.swipe.actions[state.swipe.actions.length - 1] || null;
     renderSwipe();
     toast("Вернули карточку");
+  }
+
+  function rollbackSwipeAction(id) {
+    if (!state.swipe) return;
+    const idx = state.swipe.actions.findIndex((a) => a.id === id);
+    if (idx === -1) return;
+    const [act] = state.swipe.actions.splice(idx, 1);
+    restorePlaceAction(act.snapshot);
+    state.swipe.cursor = Math.max(0, state.swipe.cursor - 1);
+    state.swipe.done = Math.max(0, state.swipe.done - 1);
+    state.swipe.lastAction = state.swipe.actions[state.swipe.actions.length - 1] || null;
   }
 
   // ==================== TASTE ====================
@@ -1212,6 +1229,7 @@
           <button type="button" class="btn btn-dark-secondary" data-action="walk-skip">Пропустить</button>
           <button type="button" class="btn btn-route" data-action="walk-next">${next ? "Готово, дальше →" : "Завершить прогулку"}</button>
         </div>
+        <button type="button" class="walk-abort" data-action="walk-abort">Бросить прогулку</button>
       </section>`;
     startWalkTimer();
   }
@@ -1393,6 +1411,8 @@
     const p = place(state.params.id);
     if (!p) return;
     const m = state.memory;
+    const fromSwipe = state.params.from === "swipe" && state.swipe && currentSwipePlace() && currentSwipePlace().id === p.id;
+    const swipeSnapshot = fromSwipe ? snapshotPlaceAction(p.id) : null;
     if (action === "wanted") {
       if (m.wantedPlaces[p.id]) {
         delete m.wantedPlaces[p.id];
@@ -1405,6 +1425,7 @@
           actionLabel: "Отменить",
           onAction: () => {
             delete m.wantedPlaces[p.id];
+            if (fromSwipe) rollbackSwipeAction(p.id);
             persistMemory();
             renderPlace();
           }
@@ -1431,6 +1452,20 @@
       }
     }
     persistMemory();
+    if (fromSwipe) {
+      const resolved =
+        (action === "wanted" && m.wantedPlaces[p.id] && !swipeSnapshot.wanted) ||
+        (action === "visited" && m.visitedPlaces[p.id] && !swipeSnapshot.visited) ||
+        (action === "no" && m.dislikedPlaces[p.id] && !swipeSnapshot.disliked);
+      if (resolved) {
+        const direction = action === "wanted" ? "right" : action === "visited" ? "up" : "left";
+        const swipeAction = { id: p.id, direction, snapshot: swipeSnapshot };
+        state.swipe.actions.push(swipeAction);
+        state.swipe.lastAction = swipeAction;
+        state.swipe.done += 1;
+        state.swipe.cursor += 1;
+      }
+    }
     renderPlace();
   }
 
@@ -2238,6 +2273,16 @@
     } else if (name === "walk-abandon-confirm") {
       $("#sheetRoot").innerHTML = "";
       finishWalk();
+    } else if (name === "walk-abort") {
+      if (!state.walk) return;
+      const routeId = state.walk.route.id;
+      openConfirm("Бросить прогулку? Отметки «Был» останутся в Памяти, но прогулка не запишется как пройденная.", () => {
+        clearInterval(walkTimer);
+        state.walk = null;
+        persistWalk();
+        toast("Прогулка сброшена");
+        navigate("route", { routeId });
+      });
     } else if (name === "walk-skip") {
       if (!state.walk) return;
       state.walk.index += 1;
@@ -2334,22 +2379,23 @@
     else toast("Не удалось поделиться");
   }
 
+  function systemShareAvailable() {
+    return Boolean(navigator.share) && window.matchMedia("(pointer: coarse)").matches;
+  }
+
   function shareRoute(route) {
     if (!route) return;
     const text = `${route.title} — ${formatDuration(route.metrics.totalDurationMin)}, ${formatKm(route.metrics.totalWalkKm)}\n${route.stops.map((stop, i) => `${i + 1}. ${stop.name}`).join("\n")}\n${route.mapLinks?.yandexWebUrl || ""}`;
-    if (navigator.share) {
+    if (systemShareAvailable()) {
       navigator.share({ title: "Wheee!ekend", text }).catch((error) => { if (error.name !== "AbortError") copyShareText(text); });
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => toast("Маршрут скопирован")).catch(() => toast(text));
-    } else toast(text);
+    } else copyShareText(text);
   }
 
   function sharePlace(p) {
     if (!p) return;
     const text = `${p.name} — ${p.description || ""}\n${Array.isArray(p.coords) ? `https://yandex.ru/maps/?pt=${p.coords[1]},${p.coords[0]}&z=17&l=map` : ""}`;
-    if (navigator.share) navigator.share({ title: p.name, text }).catch((error) => { if (error.name !== "AbortError") copyShareText(text); });
-    else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Ссылка скопирована")).catch(() => toast(text));
-    else toast(text);
+    if (systemShareAvailable()) navigator.share({ title: p.name, text }).catch((error) => { if (error.name !== "AbortError") copyShareText(text); });
+    else copyShareText(text);
   }
 
   function clearRouteMap() {

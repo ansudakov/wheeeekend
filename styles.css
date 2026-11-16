@@ -883,3 +883,7 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .memory-card[data-completed-route]:focus-visible { outline: 3px solid var(--route); outline-offset: 3px; }
 
 .mood-grid .mood-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* Walk abort control */
+.walk-abort { display: block; margin: 10px auto 0; padding: 6px 10px; background: none; border: 0; font-family: var(--font-ui); font-size: 13px; font-weight: 700; color: var(--text-inverse); opacity: .65; }
+.walk-abort:active { opacity: 1; }
