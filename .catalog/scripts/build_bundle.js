@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { CLUSTERS, PLACES } = require('../data/moscow_catalog');
 const ROOT = path.join(__dirname, '..');
+const PHOTO_EXCLUSIONS = new Set(['krasnopresnensky_park_ponds', 'um_place_484', 'um_museum_504', 'um_museum_466', 'um_museum_470', 'um_museum_468', 'um_museum_502']);
 const RECATEGORIZE = new Set(['moscow_museum_proviantskie', 'shchusev_architecture_museum', 'tretyakov_kadashevskaya', 'rus_impressionism', 'zotov_center', 'decorative_art_museum_delegatskaya', 'andronikov_monastery_rublev', 'jewish_museum_bakhmetevsky']);
 function read(file, fallback) {
   try { return JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf8')); }
@@ -22,7 +23,8 @@ function buildBundle() {
   const places = [...merged.values()].map(place => {
     const prior = previous.get(place.id) || {};
     const localPhotos = [...new Set([...(prior.images || []), prior.imageUrl].filter(u => typeof u === 'string' && u.startsWith('photos/') && fs.existsSync(path.join(ROOT, 'public', u))))];
-    if (localPhotos.length) { place.imageUrl = localPhotos[0]; place.images = localPhotos; }
+    if (PHOTO_EXCLUSIONS.has(place.id) || (!localPhotos.length && !prior.images?.length)) { place.imageUrl = ''; place.images = []; }
+    else if (localPhotos.length) { place.imageUrl = localPhotos[0]; place.images = localPhotos; }
     if (RECATEGORIZE.has(place.id)) place.category = 'museum';
     return place;
   });
@@ -35,7 +37,7 @@ function buildBundle() {
       sources: live.sources || [],
       delivery: 'static-catalogue',
       sourceStatus: live.sourceStatus || {},
-      freshnessNote: 'Каталог обновляется при публикации приложения. Расписание и билеты проверяйте на сайте площадки.'
+      freshnessNote: 'Каталог обновляется дважды в неделю и при публикации приложения. Расписание и билеты проверяйте на сайте площадки.'
     }
   };
 }

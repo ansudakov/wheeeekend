@@ -1874,7 +1874,7 @@
         <div class="topbar topbar-left">${backButton("sources-back", "Назад")}<strong>Источники данных</strong></div>
         <h1 class="screen-title">Откуда места</h1>
         <p class="privacy-date">${state.places.length} мест в каталоге. ${state.sourcesMeta?.syncedAt ? `Обновлён ${escapeHtml(new Date(state.sourcesMeta.syncedAt).toLocaleDateString("ru-RU"))}.` : "Дата обновления неизвестна."}</p>
-        <p class="sources-note">${escapeHtml(state.sourcesMeta?.freshnessNote || "Каталог обновляется при публикации приложения. Перед выходом проверяй часы работы и билеты у площадки.")}</p>
+        <p class="sources-note">${escapeHtml(state.sourcesMeta?.freshnessNote || "Каталог обновляется дважды в неделю и при публикации приложения. Перед выходом проверяй часы работы и билеты у площадки.")}</p>
         <div class="sources-list">
           ${sources.map(([name, text]) => `<div class="source-row"><strong>${name}</strong><span>${text}</span></div>`).join("")}
         </div>
