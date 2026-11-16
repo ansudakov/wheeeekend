@@ -629,7 +629,7 @@ img { display: block; max-width: 100%; }
 .photo-fallback .icon { width: 30px; height: 30px; }
 
 /* ---------- toast / sheet ---------- */
-.toast-root { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom,0px)); transform: translateX(-50%); width: 100%; max-width: 390px; padding: 0 20px; z-index: 120; pointer-events: none; }
+.toast-root { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top,0px)); bottom: auto; transform: translateX(-50%); width: 100%; max-width: 390px; padding: 0 20px; z-index: 120; pointer-events: none; }
 .toast { display: flex; align-items: center; gap: 10px; background: var(--surface-inverse); color: var(--text-inverse); border-radius: 16px; padding: 10px 10px 10px 14px; box-shadow: var(--shadow-float); transform: translateY(20px); opacity: 0; transition: transform .2s var(--ease-out), opacity .2s; pointer-events: auto; }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast-light { background: var(--surface); color: var(--text); }

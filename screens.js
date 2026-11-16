@@ -144,7 +144,7 @@
             </div>`).join("")}
         </div>
         <h1 class="onboarding-title">Москва, которую<br>ты ещё <span class="text-route">не видел</span></h1>
-        <p class="onboarding-text">Свайпни 10 мест — поймём твой вкус и уберём то, где ты уже был. Дальше только новые прогулки.</p>
+        <p class="onboarding-text">Свайпни 5 мест — поймём твой вкус и уберём то, где ты уже был. Дальше только новые прогулки.</p>
         <div class="onboarding-steps">
           <span><b>1</b> Свайп</span>
           <span><b>2</b> Настроение</span>
@@ -183,7 +183,8 @@
       actions: [],
       lastAction: null,
       limit: mode === "calibration" ? 5 : Infinity,
-      busy: false
+      busy: false,
+      from: state.screen
     };
     navigate("swipe", { mode: mode || "calibration" });
   }
@@ -1216,13 +1217,15 @@
 
   function startWalkTimer() {
     clearInterval(walkTimer);
-    walkTimer = setInterval(() => {
+    const tick = () => {
       if (!state.walk) return;
       const el = $("#walkTimer");
       if (!el) return;
       const total = Math.floor((Date.now() - state.walk.startedAt) / 1000);
       el.textContent = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
-    }, 1000);
+    };
+    tick();
+    walkTimer = setInterval(tick, 1000);
   }
 
   function finishWalk() {
@@ -1237,7 +1240,7 @@
     state.memory.onboardingDone = true;
     persistMemory();
     toast(visitedStops.length ? "Прогулка записана! Посещённые места добавлены в Память" : "Прогулка завершена. Все места пропущены");
-    navigate("memory");
+    navigate("memory", { tab: "completed" });
   }
 
   // ==================== PLACE ====================
@@ -1715,7 +1718,7 @@
   // ==================== AUTH ====================
 
   function renderAuth() {
-    const isLogin = state.params.mode === "login" || authMode === "login";
+    const isLogin = state.params.mode === "login" || (!state.params.mode && authMode === "login");
     authMode = isLogin ? "login" : "register";
     $("#screenRoot").innerHTML = `
       <section class="screen auth-screen">
@@ -1753,6 +1756,10 @@
       const passOk = password.value.length >= 6;
       const consentOk = isLogin || (consent && consent.checked);
       submit.disabled = !(emailOk && passOk && consentOk && (isLogin || inviteOk));
+      if (error.hidden && (email.value || password.value)) {
+        const hint = !emailOk ? "Проверь адрес почты" : !passOk ? "Пароль должен содержать минимум 6 символов" : !consentOk ? "Подтверди согласие" : !inviteOk ? "Дождись проверки кода" : "";
+        error.textContent = hint; error.hidden = !hint;
+      }
     };
 
     if (invite) {
@@ -1764,6 +1771,7 @@
         status.textContent = "";
         status.className = "field-status";
         if (!code) return;
+        status.textContent = "Проверяем код…";
         inviteTimer = setTimeout(async () => {
           const c = cloud();
           if (!c || !c.isConfigured()) {
@@ -1984,6 +1992,12 @@
       if (p) openPhotoLightbox(p, idx);
       return;
     }
+    const routeCardBody = e.target.closest(".route-card-body, .route-card-photo");
+    if (routeCardBody && !e.target.closest("button")) {
+      const route = state.routes[Number(routeCardBody.closest(".route-card")?.dataset.routeIndex)];
+      if (route) navigate("route", { routeId: route.id });
+      return;
+    }
     const shareCard = e.target.closest("[data-share-route-index]");
     if (shareCard) { shareRoute(state.routes[Number(shareCard.dataset.shareRouteIndex)]); return; }
     const nav = e.target.closest("[data-nav]");
@@ -1993,6 +2007,7 @@
       if (nav.dataset.route) params.routeId = nav.dataset.route;
       if (nav.dataset.mode) params.mode = nav.dataset.mode;
       if (nav.dataset.from) params.from = nav.dataset.from;
+      if (nav.dataset.nav === "profile") sessionStorage.setItem("wheee_profile_from", state.screen);
       navigate(nav.dataset.nav, params);
       return;
     }
@@ -2237,7 +2252,7 @@
     } else if (name === "empty-swipe") startSwipe("discoveries");
     else if (name === "open-discoveries") startSwipe("discoveries");
     else if (name === "profile-back") navigate(state.params.from || "more");
-    else if (name === "install-done") navigate(state.params.from || "profile");
+    else if (name === "install-done") navigate(state.params.from || "profile", state.params.from === "profile" ? { from: sessionStorage.getItem("wheee_profile_from") || "more" } : {});
     else if (name === "account-sync") syncCloud({ quiet: false }).then(() => renderProfile());
     else if (name === "account-signout") {
       const c = cloud();
@@ -2299,11 +2314,16 @@
     removeWanted(id);
   }
 
+  function copyShareText(text) {
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Ссылка скопирована")).catch(() => toast("Не удалось поделиться"));
+    else toast("Не удалось поделиться");
+  }
+
   function shareRoute(route) {
     if (!route) return;
     const text = `${route.title} — ${formatDuration(route.metrics.totalDurationMin)}, ${formatKm(route.metrics.totalWalkKm)}\n${route.stops.map((stop, i) => `${i + 1}. ${stop.name}`).join("\n")}\n${route.mapLinks?.yandexWebUrl || ""}`;
     if (navigator.share) {
-      navigator.share({ title: "Wheee!ekend", text }).catch(() => {});
+      navigator.share({ title: "Wheee!ekend", text }).catch((error) => { if (error.name !== "AbortError") copyShareText(text); });
     } else if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => toast("Маршрут скопирован")).catch(() => toast(text));
     } else toast(text);
@@ -2312,7 +2332,7 @@
   function sharePlace(p) {
     if (!p) return;
     const text = `${p.name} — ${p.description || ""}\n${Array.isArray(p.coords) ? `https://yandex.ru/maps/?pt=${p.coords[1]},${p.coords[0]}&z=17&l=map` : ""}`;
-    if (navigator.share) navigator.share({ title: p.name, text }).catch(() => {});
+    if (navigator.share) navigator.share({ title: p.name, text }).catch((error) => { if (error.name !== "AbortError") copyShareText(text); });
     else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast("Ссылка скопирована")).catch(() => toast(text));
     else toast(text);
   }

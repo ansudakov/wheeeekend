@@ -617,13 +617,17 @@
       </div>`;
     const close = () => {
       root.innerHTML = "";
+      document.removeEventListener("keydown", onEscape);
       if (options.onClose) options.onClose();
     };
     $all("[data-sheet-close]", root).forEach((el) => {
       el.addEventListener("click", (e) => {
-        if (e.target === el) close();
+        if (el.classList.contains("sheet-backdrop") && e.target !== el) return;
+        close();
       });
     });
+    const onEscape = (event) => { if (event.key === "Escape") { event.preventDefault(); close(); } };
+    document.addEventListener("keydown", onEscape);
     return { close, root };
   }
 
