@@ -550,7 +550,8 @@
       ["mix", "✱", "Микс", "разные открытия рядом"],
       ["courtyard", "⌂", "Тайные дворы", "арки и архитектура"],
       ["exhibition", "◐", "Музеи и выставки", "музеи и арт-пространства"],
-      ["nature", "❦", "Парки, усадьбы", "зелень и экотропы"]
+      ["nature", "❦", "Парки, усадьбы", "зелень и экотропы"],
+      ["suburb", "↗", "За городом", "прогулки по Подмосковью"]
     ];
     return items.map(([key, glyph, title, sub]) => `
       <button type="button" class="mood-tile ${state.filters.focus === key ? "active" : ""}" data-mood="${key}" aria-pressed="${state.filters.focus === key}">
@@ -1558,7 +1559,7 @@
       <section class="screen memory-screen">
         <div class="page-head"><h1 class="screen-title">Память</h1></div>
         <div class="stats-card ${stats.km ? "" : "stats-two"}">
-          <div><strong class="text-route">${stats.visited}</strong><span>мест открыто</span></div>
+          <div><strong class="text-route">${stats.visited}</strong><span>${plural(stats.visited, "место открыто", "места открыто", "мест открыто")}</span></div>
           <div><strong>${stats.walks}</strong><span>${plural(stats.walks, "прогулка", "прогулки", "прогулок")}</span></div>
           ${stats.km ? `<div><strong>${String(stats.km).replace(".", ",")}<small> км</small></strong><span>пешком</span></div>` : ""}
         </div>
@@ -1660,7 +1661,7 @@
     $("#screenRoot").innerHTML = `
       <section class="screen profile-screen">
         <div class="topbar topbar-left">${backButton("profile-back", "Назад")}<strong>Профиль</strong></div>
-        <div class="profile-head"><span class="avatar avatar-lg">${accountInitial()}</span><div><h1>${escapeHtml(archetype())}</h1><p>${stats.visited} мест · ${stats.walks} ${plural(stats.walks, "прогулка", "прогулки", "прогулок")} · ${user ? "аккаунт" : "гость"}</p></div></div>
+        <div class="profile-head"><span class="avatar avatar-lg">${accountInitial()}</span><div><h1>${escapeHtml(archetype())}</h1><p>${stats.visited} ${plural(stats.visited, "место", "места", "мест")} · ${stats.walks} ${plural(stats.walks, "прогулка", "прогулки", "прогулок")} · ${user ? "аккаунт" : "гость"}</p></div></div>
         <div class="account-card">
           <strong>${user ? "Синхронизация включена" : "Не потеряй свою Москву"}</strong>
           <p>${user ? escapeHtml(user.email) : "Аккаунт — по приглашению и только для синхронизации между устройствами. Без него всё работает."}</p>
@@ -2037,7 +2038,7 @@
     if (mood) {
       state.filters.focus = mood.dataset.mood;
       state.filters.nearby = false;
-      if (mood.dataset.mood !== "suburb") state.filters.clusterId = state.filters.clusterId === "any" ? "any" : state.filters.clusterId;
+      if (mood.dataset.mood === "suburb") state.filters.clusterId = "any";
       persistFilters();
       renderWalks();
       return;

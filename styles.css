@@ -881,3 +881,5 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .interactive-route-map { background-image: linear-gradient(30deg, transparent 47%, color-mix(in srgb, var(--route) 15%, transparent) 48%, color-mix(in srgb, var(--route) 15%, transparent) 52%, transparent 53%), linear-gradient(120deg, transparent 47%, color-mix(in srgb, var(--route) 10%, transparent) 48%, color-mix(in srgb, var(--route) 10%, transparent) 52%, transparent 53%); background-size: 72px 72px, 104px 104px; }
 .memory-card[data-completed-route] { cursor: pointer; }
 .memory-card[data-completed-route]:focus-visible { outline: 3px solid var(--route); outline-offset: 3px; }
+
+.mood-grid .mood-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
