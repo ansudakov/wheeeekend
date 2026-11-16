@@ -83,16 +83,16 @@
   function ctaSummary() {
     const duration = state.filters.duration === "short" ? "1,5 часа" : state.filters.duration === "long" ? "4 часа" : "2,5 часа";
     let location = "только новые места";
-    if (state.filters.focus === "suburb") location = "Подмосковье";
-    else if (state.filters.clusterId !== "any") location = W.clusterName(state.filters.clusterId);
+    if (state.filters.focus === "suburb") return `Подмосковье · ${duration}`;
+    if (state.filters.clusterId !== "any") location = W.clusterName(state.filters.clusterId);
     return `${moodLabel(state.filters.focus)} · ${duration} · ${location}`;
   }
 
   function filterSummary() {
     const focus = state.filters.focus === "suburb" ? "Подмосковье" : moodLabel(state.filters.focus);
     let location = "любой район";
-    if (state.filters.focus === "suburb") location = "Подмосковье";
-    else if (state.filters.clusterId !== "any") location = W.clusterName(state.filters.clusterId);
+    if (state.filters.focus === "suburb") return `Подмосковье · ${durationFilterText()}`;
+    if (state.filters.clusterId !== "any") location = W.clusterName(state.filters.clusterId);
     return `${focus} · ${durationFilterText()} · ${location}`;
   }
 
@@ -939,7 +939,7 @@
       <section class="screen route-screen">
         <div class="route-map-wrap">
           <div id="interactiveRouteMap" class="interactive-route-map" aria-label="Карта маршрута: масштабируй двумя пальцами или кнопками"></div>
-          <p class="map-status" id="mapStatus">Загружаем карту…</p>
+          <p class="map-status" id="mapStatus">Точки маршрута готовы · загружаем подложку…</p>
           <div class="route-map-controls">
             ${backButton(fromFavorites ? "route-back-favorites" : "route-back-routes", "Назад")}
             <div class="route-map-right">
@@ -1184,8 +1184,8 @@
       <section class="screen walk-screen theme-ink">
         <div class="walk-top">
           <button type="button" class="icon-btn icon-btn-dark" data-action="walk-minimize" aria-label="Свернуть">${icon("i-chevron-down")}</button>
-          <div class="walk-status"><span class="live-dot"></span>Прогулка идёт · <b id="walkTimer">0:00</b></div>
-          <button type="button" class="icon-btn icon-btn-dark" data-action="walk-map" aria-label="Карта маршрута">${icon("i-map")}</button>
+          <div class="walk-status"><span class="live-dot"></span>Прогулка идёт · <b id="walkTimer">${Math.floor((Date.now() - walk.startedAt) / 60000)}:${String(Math.floor((Date.now() - walk.startedAt) / 1000) % 60).padStart(2, "0")}</b></div>
+          <button type="button" class="icon-btn icon-btn-dark" data-action="walk-abandon" aria-label="Завершить прогулку досрочно">${icon("i-close")}</button>
         </div>
         <div class="walk-progress">${stops.map((_, i) => `<span class="${i < walk.index ? "done" : i === walk.index ? "now" : ""}"></span>`).join("")}</div>
         <div class="walk-photo">
@@ -1577,7 +1577,7 @@
 
   function completedCard(route) {
     return `
-      <article class="memory-card">
+      <article class="memory-card" data-completed-route="${escapeHtml(route.id)}" role="button" tabindex="0" aria-label="Посмотреть прогулку ${escapeHtml(route.title)}">
         <div class="memory-icon">${icon("i-walks")}</div>
         <div><strong>${escapeHtml(route.title)}</strong><span>${escapeHtml(completedLabel(route.completedAt))} · ${formatSteps((route.stopNames || []).length)}${route.totalWalkKm ? ` · ${formatKm(route.totalWalkKm)}` : ""}</span></div>
       </article>`;
@@ -1983,6 +1983,12 @@
 
   // ==================== EVENTS ====================
 
+  document.addEventListener("keydown", (event) => {
+    if ((event.key === "Enter" || event.key === " ") && event.target.matches?.("[data-completed-route]")) {
+      event.preventDefault(); event.target.click();
+    }
+  });
+
   document.addEventListener("click", (e) => {
     const fullPhoto = e.target.closest("[data-lightbox-index], [data-lightbox-current]");
     if (fullPhoto) {
@@ -2128,12 +2134,19 @@
       return;
     }
 
+    const completedCardButton = e.target.closest("[data-completed-route]");
+    if (completedCardButton) {
+      const completed = (state.memory.completedRoutes || []).find((item) => item.id === completedCardButton.dataset.completedRoute);
+      if (completed) openSheet(`<div class="sheet-pad"><h2 class="sheet-title">${escapeHtml(completed.title)}</h2><p>${escapeHtml(completedLabel(completed.completedAt))}</p><ol>${(completed.stopNames || []).map((name) => `<li>${escapeHtml(name)}</li>`).join("")}</ol></div>`);
+      return;
+    }
     const restoreVisited = e.target.closest("[data-restore-visited]");
     if (restoreVisited) {
+      const oldVisited = state.memory.visitedPlaces[restoreVisited.dataset.restoreVisited];
       delete state.memory.visitedPlaces[restoreVisited.dataset.restoreVisited];
       persistMemory();
       renderMemory();
-      toast("Вернули в подбор");
+      toast("Вернули в подбор", { actionLabel: "Отменить", onAction: () => { state.memory.visitedPlaces[restoreVisited.dataset.restoreVisited] = oldVisited; persistMemory(); renderMemory(); } });
       return;
     }
 
@@ -2186,7 +2199,7 @@
     } else if (name === "swipe-close-onboarding") {
       if (state.memory.onboardingDone) navigate("walks", {}, { replace: true });
       else navigate("onboarding", {}, { replace: true });
-    } else if (name === "swipe-close-discoveries") navigate("more");
+    } else if (name === "swipe-close-discoveries") navigate(state.swipe?.from || "more");
     else if (name === "swipe-undo") undoLastSwipe();
     else if (name === "swipe-finish") navigate(state.swipe.mode === "calibration" ? "taste" : "walks", {}, { replace: true });
     else if (name === "taste-walks") {
@@ -2209,10 +2222,7 @@
     else if (name === "loading-cancel") navigate("walks", {}, { replace: true });
     else if (name === "routes-back") navigate("walks");
     else if (name === "share-route") shareRoute(state.routes[state.routeIndex]);
-    else if (name === "open-route") {
-      const route = state.routes[state.routeIndex];
-      navigate("route", { routeId: route ? route.id : "" });
-    } else if (name === "route-back-routes") {
+    else if (name === "route-back-routes") {
       clearRouteMap();
       navigate("routes");
     } else if (name === "route-back-favorites") {
@@ -2222,6 +2232,11 @@
     else if (name === "walk-minimize" || name === "walk-map") {
       clearInterval(walkTimer);
       navigate("route", { routeId: state.walk ? state.walk.route.id : "" });
+    } else if (name === "walk-abandon") {
+      openSheet(`<div class="sheet-pad"><h2 class="sheet-title">Завершить прогулку?</h2><p>Пройденные места останутся в Памяти.</p><button type="button" class="btn btn-route" data-action="walk-abandon-confirm">Завершить прогулку</button></div>`);
+    } else if (name === "walk-abandon-confirm") {
+      $("#sheetRoot").innerHTML = "";
+      finishWalk();
     } else if (name === "walk-skip") {
       if (!state.walk) return;
       state.walk.index += 1;
@@ -2235,8 +2250,7 @@
       if (stop) {
         state.walk.visited = state.walk.visited || {};
         state.walk.visited[stop.id] = true;
-        state.memory.visitedPlaces[stop.id] = { visitedAt: new Date().toISOString(), reason: "Отметил на прогулке", skipEvenNewExhibitions: false };
-        persistMemory();
+
       }
       state.walk.index += 1;
       state.walk.checked = {};
