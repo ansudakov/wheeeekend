@@ -1770,8 +1770,8 @@
           ${isLogin ? "" : `
           <label class="field"><span>Код приглашения</span><input id="authInvite" type="text" autocomplete="off" placeholder="wheee-…"><em id="inviteStatus" class="field-status"></em></label>`}
           <label class="field"><span>Почта</span><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
-          <label class="field"><span>Пароль</span><span class="password-field"><input id="authPassword" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="Минимум 6 символов"><button type="button" class="password-toggle" data-password-toggle="authPassword" aria-label="Показать пароль" aria-pressed="false">${icon("i-eye")}</button></span></label>
-          ${isLogin ? "" : `<label class="field"><span>Повтори пароль</span><span class="password-field"><input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="Повтори пароль"><button type="button" class="password-toggle" data-password-toggle="authPasswordConfirm" aria-label="Показать повтор пароля" aria-pressed="false">${icon("i-eye")}</button></span></label>`}
+          <label class="field"><span>Пароль</span><span class="password-field"><input id="authPassword" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="Минимум 6 символов"><output class="password-reveal" aria-hidden="true" hidden></output><button type="button" class="password-toggle" data-password-toggle="authPassword" aria-label="Показать пароль" aria-pressed="false">${icon("i-eye")}</button></span></label>
+          ${isLogin ? "" : `<label class="field"><span>Повтори пароль</span><span class="password-field"><input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="Повтори пароль"><output class="password-reveal" aria-hidden="true" hidden></output><button type="button" class="password-toggle" data-password-toggle="authPasswordConfirm" aria-label="Показать повтор пароля" aria-pressed="false">${icon("i-eye")}</button></span></label>`}
           ${isLogin ? "" : `<label class="consent"><input id="authConsent" type="checkbox"><span>Согласен на обработку почты и отметок для синхронизации</span></label><button type="button" class="link-btn consent-link" data-nav="privacy" data-from="register" data-mode="register">Прочитать политику конфиденциальности</button>`}
           <div id="authError" class="form-error" hidden></div>
           <button type="submit" class="btn btn-ink" id="authSubmit" ${isLogin ? "" : "disabled"}>${isLogin ? "Войти" : "Создать аккаунт"}</button>
@@ -1851,6 +1851,12 @@
     [email, password, passwordConfirm, consent].filter(Boolean).forEach((el) => {
       el.addEventListener("input", validate);
       el.addEventListener("change", validate);
+    });
+    [password, passwordConfirm].filter(Boolean).forEach((input) => {
+      input.addEventListener("input", () => {
+        const reveal = input.closest(".password-field")?.querySelector(".password-reveal");
+        if (reveal && !reveal.hidden) reveal.textContent = input.value;
+      });
     });
     validate();
 
@@ -2052,8 +2058,13 @@
     if (passwordToggle) {
       const input = document.getElementById(passwordToggle.dataset.passwordToggle);
       if (input) {
-        input.type = input.type === "password" ? "text" : "password";
-        const visible = input.type === "text";
+        const visible = passwordToggle.getAttribute("aria-pressed") !== "true";
+        input.type = visible ? "text" : "password";
+        const reveal = input.closest(".password-field")?.querySelector(".password-reveal");
+        if (reveal) {
+          reveal.textContent = visible ? input.value : "";
+          reveal.hidden = !visible;
+        }
         passwordToggle.setAttribute("aria-pressed", String(visible));
         passwordToggle.setAttribute("aria-label", visible ? "Скрыть пароль" : "Показать пароль");
       }

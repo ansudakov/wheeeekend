@@ -899,6 +899,8 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .password-toggle { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; color: var(--text-muted); }
 .password-toggle .icon { width: 20px; height: 20px; }
 .password-toggle[aria-pressed="true"] { color: var(--text); background: var(--surface-sunken); }
+.password-reveal:not([hidden]) { position: absolute; left: 2px; right: 52px; top: 2px; bottom: 2px; z-index: 1; display: flex; align-items: center; overflow: hidden; white-space: nowrap; padding: 0 12px; border-radius: 12px 0 0 12px; background: var(--surface); color: var(--text); font-size: 16px; pointer-events: none; }
+.password-toggle { z-index: 2; }
 
 .mood-glyph { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; }
 .mood-glyph .icon { width: 24px; height: 24px; stroke-width: 2.2; }

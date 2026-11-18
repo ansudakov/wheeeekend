@@ -169,7 +169,7 @@
   function authErrorMessage(data) {
     const raw = (data && data.error && data.error.message) || "";
     const code = String(raw).split(" : ")[0].split(":")[0].trim();
-    return { code: code || "UNKNOWN", message: AUTH_ERRORS[code] || "Не удалось выполнить вход. Попробуйте ещё раз." };
+    return { code: code || "UNKNOWN", message: AUTH_ERRORS[code] || `Не удалось выполнить вход (код ${code || "UNKNOWN"}). Попробуйте ещё раз.` };
   }
 
   async function authCall(endpoint, body) {
@@ -180,6 +180,8 @@
     const { res, data } = await httpJson(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      referrer: window.location.origin + "/",
+      referrerPolicy: "origin",
       body: JSON.stringify(body)
     });
     if (!res.ok) {
