@@ -557,22 +557,22 @@
     const w = state.weather;
     const now = new Date();
     const day = W.WEEKDAYS[now.getDay()];
-    if (!w) return day;
+    if (!w) return `${day} · погода недоступна`;
     const sign = w.temp > 0 ? "+" : "";
     return `${day} · ${sign}${w.temp}° · ${w.description}`;
   }
 
   function moodTiles() {
     const items = [
-      ["mix", "✱", "Микс", "разные открытия рядом"],
-      ["courtyard", "⌂", "Тайные дворы", "арки и архитектура"],
-      ["exhibition", "◐", "Музеи и выставки", "музеи и арт-пространства"],
-      ["nature", "❦", "Парки, усадьбы", "зелень и экотропы"],
-      ["suburb", "↗", "За городом", "прогулки по Подмосковью"]
+      ["mix", "i-mood-mix", "Микс", "разные открытия рядом"],
+      ["courtyard", "i-mood-courtyard", "Тайные дворы", "арки и архитектура"],
+      ["exhibition", "i-mood-museum", "Музеи и выставки", "музеи и арт-пространства"],
+      ["nature", "i-mood-nature", "Парки, усадьбы", "зелень и экотропы"],
+      ["suburb", "i-mood-suburb", "За городом", "прогулки по Подмосковью"]
     ];
     return items.map(([key, glyph, title, sub]) => `
       <button type="button" class="mood-tile ${state.filters.focus === key ? "active" : ""}" data-mood="${key}" aria-pressed="${state.filters.focus === key}">
-        <span class="mood-glyph">${glyph}</span>
+        <span class="mood-glyph">${icon(glyph)}</span>
         <span class="mood-text"><strong>${title}</strong><span>${sub}</span></span>
       </button>`).join("");
   }
@@ -1759,13 +1759,14 @@
     $("#screenRoot").innerHTML = `
       <section class="screen auth-screen">
         <div class="topbar">${closeButton("auth-close", "Закрыть")}</div>
-        <h1 class="screen-title">${isLogin ? "Войти" : "Вход по<br>приглашению"}</h1>
-        <p class="auth-lead">${isLogin ? "Войди, чтобы вернуть свою «Память» на этом устройстве." : "Аккаунт нужен, чтобы «Память» не потерялась при смене телефона. Без него всё тоже работает."}</p>
+        <h1 class="screen-title">${isLogin ? "Войти" : "Регистрация"}</h1>
+        <p class="auth-lead">${isLogin ? "Войди, чтобы вернуть свою «Память» на этом устройстве." : "Создай аккаунт по приглашению. Придумай пароль — он понадобится для входа на другом устройстве."}</p>
         <form id="authForm" class="auth-form" novalidate>
           ${isLogin ? "" : `
-          <label class="field"><span>Код приглашения</span><input id="authInvite" type="text" autocomplete="off" placeholder="spring-dvor-27"><em id="inviteStatus" class="field-status"></em></label>`}
+          <label class="field"><span>Код приглашения</span><input id="authInvite" type="text" autocomplete="off" placeholder="wheee-…"><em id="inviteStatus" class="field-status"></em></label>`}
           <label class="field"><span>Почта</span><input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"></label>
-          <label class="field"><span>Пароль</span><input id="authPassword" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="Минимум 6 символов"></label>
+          <label class="field"><span>Пароль</span><span class="password-field"><input id="authPassword" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="Минимум 6 символов"><button type="button" class="password-toggle" data-password-toggle="authPassword" aria-label="Показать пароль" aria-pressed="false">${icon("i-eye")}</button></span></label>
+          ${isLogin ? "" : `<label class="field"><span>Повтори пароль</span><span class="password-field"><input id="authPasswordConfirm" type="password" autocomplete="new-password" placeholder="Повтори пароль"><button type="button" class="password-toggle" data-password-toggle="authPasswordConfirm" aria-label="Показать повтор пароля" aria-pressed="false">${icon("i-eye")}</button></span></label>`}
           ${isLogin ? "" : `<label class="consent"><input id="authConsent" type="checkbox"><span>Согласен на обработку почты и отметок для синхронизации</span></label><button type="button" class="link-btn consent-link" data-nav="privacy" data-from="register" data-mode="register">Прочитать политику конфиденциальности</button>`}
           <div id="authError" class="form-error" hidden></div>
           <button type="submit" class="btn btn-ink" id="authSubmit" ${isLogin ? "" : "disabled"}>${isLogin ? "Войти" : "Создать аккаунт"}</button>
@@ -1780,6 +1781,7 @@
     const invite = $("#authInvite");
     const email = $("#authEmail");
     const password = $("#authPassword");
+    const passwordConfirm = $("#authPasswordConfirm");
     const consent = $("#authConsent");
     const submit = $("#authSubmit");
     const error = $("#authError");
@@ -1790,10 +1792,11 @@
     const validate = () => {
       const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim());
       const passOk = password.value.length >= 6;
+      const confirmOk = isLogin || (passwordConfirm && passwordConfirm.value === password.value);
       const consentOk = isLogin || (consent && consent.checked);
-      submit.disabled = !(emailOk && passOk && consentOk && (isLogin || inviteOk));
-      if (error.hidden && (email.value || password.value)) {
-        const hint = !emailOk ? "Проверь адрес почты" : !passOk ? "Пароль должен содержать минимум 6 символов" : !consentOk ? "Подтверди согласие" : !inviteOk ? "Дождись проверки кода" : "";
+      submit.disabled = !(emailOk && passOk && confirmOk && consentOk && (isLogin || inviteOk));
+      if (email.value || password.value || passwordConfirm?.value) {
+        const hint = !emailOk ? "Проверь адрес почты" : !passOk ? "Пароль должен содержать минимум 6 символов" : !confirmOk ? "Пароли не совпадают" : !consentOk ? "Подтверди согласие" : !inviteOk ? "Дождись проверки кода" : "";
         error.textContent = hint; error.hidden = !hint;
       }
     };
@@ -1840,7 +1843,7 @@
         }, 450);
       });
     }
-    [email, password, consent].filter(Boolean).forEach((el) => {
+    [email, password, passwordConfirm, consent].filter(Boolean).forEach((el) => {
       el.addEventListener("input", validate);
       el.addEventListener("change", validate);
     });
@@ -2038,6 +2041,17 @@
     if (routeCardBody && !e.target.closest("button")) {
       const route = state.routes[Number(routeCardBody.closest(".route-card")?.dataset.routeIndex)];
       if (route) navigate("route", { routeId: route.id });
+      return;
+    }
+    const passwordToggle = e.target.closest("[data-password-toggle]");
+    if (passwordToggle) {
+      const input = document.getElementById(passwordToggle.dataset.passwordToggle);
+      if (input) {
+        input.type = input.type === "password" ? "text" : "password";
+        const visible = input.type === "text";
+        passwordToggle.setAttribute("aria-pressed", String(visible));
+        passwordToggle.setAttribute("aria-label", visible ? "Скрыть пароль" : "Показать пароль");
+      }
       return;
     }
     const shareCard = e.target.closest("[data-share-route-index]");

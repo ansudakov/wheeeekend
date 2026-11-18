@@ -382,40 +382,36 @@
     await refresh();
   }
 
-  function loadWeather() {
-    return new Promise((resolve) => {
-      try {
-        const cached = JSON.parse(localStorage.getItem(STORAGE.weather) || "null");
-        if (cached && Date.now() - cached.at < 30 * 60 * 1000) {
-          state.weather = cached.data;
-          resolve();
-          return;
-        }
-      } catch (e) {}
-      fetch(
-        "https://api.open-meteo.com/v1/forecast?latitude=55.7558&longitude=37.6173&current=temperature_2m,precipitation,weather_code&timezone=Europe%2FMoscow"
-      )
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data && data.current) {
-            const c = data.current;
-            state.weather = {
-              temp: Math.round(c.temperature_2m),
-              precipitation: c.precipitation || 0,
-              weatherCode: c.weather_code || 0,
-              description: WEATHER_TEXT[c.weather_code] || "облачно"
-            };
-            try {
-              localStorage.setItem(
-                STORAGE.weather,
-                JSON.stringify({ at: Date.now(), data: state.weather })
-              );
-            } catch (e) {}
-          }
-          resolve();
-        })
-        .catch(() => resolve());
-    });
+  async function loadWeather() {
+    let cached = null;
+    try {
+      cached = JSON.parse(localStorage.getItem(STORAGE.weather) || "null");
+      if (cached?.data && Number.isFinite(cached.data.temp)) state.weather = cached.data;
+      if (cached && Date.now() - cached.at < 30 * 60 * 1000) return;
+    } catch (e) {}
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6500);
+    try {
+      const response = await fetch(
+        "https://api.open-meteo.com/v1/forecast?latitude=55.7558&longitude=37.6173&current=temperature_2m,precipitation,weather_code&timezone=Europe%2FMoscow",
+        { signal: controller.signal, cache: "no-store" }
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      const current = data?.current;
+      if (!current || !Number.isFinite(current.temperature_2m)) return;
+      state.weather = {
+        temp: Math.round(current.temperature_2m),
+        precipitation: current.precipitation || 0,
+        weatherCode: current.weather_code || 0,
+        description: WEATHER_TEXT[current.weather_code] || "облачно"
+      };
+      try { localStorage.setItem(STORAGE.weather, JSON.stringify({ at: Date.now(), data: state.weather })); } catch (e) {}
+    } catch (e) {
+      // An older forecast remains visible when the weather service is unreachable.
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   // ==================== CLOUD ====================
@@ -507,6 +503,7 @@
 
   function navigate(screen, params, options = {}) {
     const nextParams = params || {};
+    const changingScreen = state.screen !== screen || (screen === "register" && state.params?.mode !== nextParams.mode);
     state.screen = screen;
     state.params = nextParams;
     if (!options.skipHistory) {
@@ -524,6 +521,13 @@
     window.scrollTo(0, 0);
     updateTabBar(screen);
     renderScreen();
+    const root = $("#screenRoot");
+    if (changingScreen && root) {
+      root.classList.remove("screen-swap");
+      void root.offsetWidth;
+      root.classList.add("screen-swap");
+      setTimeout(() => root.classList.remove("screen-swap"), 150);
+    }
   }
 
   function updateTabBar(screen) {
@@ -754,6 +758,8 @@
     updateOfflineBanner();
     window.addEventListener("online", async () => {
       updateOfflineBanner();
+      await loadWeather();
+      if (state.screen === "walks") renderScreen();
       await syncCloud({ quiet: true });
     });
     window.addEventListener("offline", updateOfflineBanner);

@@ -887,3 +887,17 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 /* Walk abort control */
 .walk-abort { display: block; margin: 10px auto 0; padding: 6px 10px; background: none; border: 0; font-family: var(--font-ui); font-size: 13px; font-weight: 700; color: var(--text-inverse); opacity: .65; }
 .walk-abort:active { opacity: 1; }
+
+/* Short page transition and password visibility controls. */
+#screenRoot.screen-swap > .screen { animation: screen-dissolve .12s ease-out both; }
+@keyframes screen-dissolve { from { opacity: .15; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #screenRoot.screen-swap > .screen { animation: none; } }
+.password-field { position: relative; display: block; }
+.password-field input { width: 100%; padding-right: 54px; }
+.password-toggle { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 10px; color: var(--text-muted); }
+.password-toggle .icon { width: 20px; height: 20px; }
+.password-toggle[aria-pressed="true"] { color: var(--text); background: var(--surface-sunken); }
+
+.mood-glyph { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; }
+.mood-glyph .icon { width: 24px; height: 24px; stroke-width: 2.2; }
+@media (max-width: 390px) { .mood-glyph { flex-basis: 26px; } .mood-tile { gap: 9px; } }
