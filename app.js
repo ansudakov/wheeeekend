@@ -387,7 +387,7 @@
     try {
       cached = JSON.parse(localStorage.getItem(STORAGE.weather) || "null");
       if (cached?.data && Number.isFinite(cached.data.temp)) state.weather = cached.data;
-      if (cached && Date.now() - cached.at < 30 * 60 * 1000) return;
+      if (cached && Date.now() - cached.at < 5 * 60 * 1000) return;
     } catch (e) {}
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 6500);
@@ -763,6 +763,9 @@
       await syncCloud({ quiet: true });
     });
     window.addEventListener("offline", updateOfflineBanner);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && state.screen === "walks") loadWeather().then(() => renderScreen());
+    });
     if (window.matchMedia) {
       const media = window.matchMedia("(prefers-color-scheme: dark)");
       const handler = () => {

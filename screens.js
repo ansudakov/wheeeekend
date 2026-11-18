@@ -557,9 +557,14 @@
     const w = state.weather;
     const now = new Date();
     const day = W.WEEKDAYS[now.getDay()];
-    if (!w) return `${day} · погода недоступна`;
+    if (!w) return `Москва · ${day} · погода недоступна`;
     const sign = w.temp > 0 ? "+" : "";
-    return `${day} · ${sign}${w.temp}° · ${w.description}`;
+    let stale = false;
+    try {
+      const cached = JSON.parse(localStorage.getItem(W.STORAGE.weather) || "null");
+      stale = Boolean(cached?.at && Date.now() - cached.at > 30 * 60 * 1000);
+    } catch (e) {}
+    return `Москва · ${day} · ${sign}${w.temp}° · ${w.description}${stale ? " · ранее" : ""}`;
   }
 
   function moodTiles() {
@@ -582,7 +587,7 @@
     $("#screenRoot").innerHTML = `
       <section class="screen walks">
         <div class="walks-top">
-          <span class="weather-chip"><span class="weather-sun">${icon("i-sun")}</span>${escapeHtml(weatherText())}</span>
+          <span class="weather-chip" title="Погода для центра Москвы"><span class="weather-sun">${icon("i-sun")}</span><span class="weather-copy">${escapeHtml(weatherText())}</span></span>
           <button type="button" class="avatar" data-nav="profile" data-from="walks" aria-label="Профиль">${accountInitial()}</button>
         </div>
         ${state.walk ? `<button type="button" class="btn btn-secondary resume-walk" data-nav="walk" data-route="${escapeHtml(state.walk.route.id)}">${icon("i-play")} Продолжить прогулку · ${state.walk.index + 1}/${state.walk.route.stops.length}</button>` : ""}
@@ -988,7 +993,7 @@
     const status = $("#mapStatus");
     const stops = (route.stops || []).filter((s) => Array.isArray(s.coords) && s.coords.every(Number.isFinite));
     if (!window.L || !container || !stops.length) {
-      if (status) status.textContent = "Карта недоступна. Открой маршрут в Я.Картах выше.";
+      if (status) status.textContent = "Карта не загрузилась. Если включён VPN, попробуй отключить его и открыть маршрут снова.";
       return;
     }
     const L = window.L;
@@ -1000,7 +1005,7 @@
     }).addTo(map);
     tiles.on("tileload", () => { if (status) status.hidden = true; });
     tiles.on("tileerror", () => {
-      if (status) { status.hidden = false; status.textContent = "Подложка недоступна — точки сохранены. Открой Я.Карты для навигации."; }
+      if (status) { status.hidden = false; status.textContent = "Карта не загрузилась. Точки маршрута сохранены. Если включён VPN, попробуй отключить его и открыть маршрут снова."; }
     });
     const points = stops.map((stop) => stop.coords);
     const color = getComputedStyle(document.documentElement).getPropertyValue("--route").trim();
