@@ -1305,7 +1305,7 @@
           <span class="photo-counter" id="photoCounter">${images.length ? `1 / ${images.length} фото` : "Фото пока нет"}</span>
         </div>
         <div class="place-sheet">
-          <div class="place-sheet-top"><div class="sheet-grabber"></div><button type="button" class="icon-btn place-collapse" data-action="place-close" aria-label="Свернуть карточку места">${icon("i-chevron-down")}</button></div>
+          <div class="place-sheet-top"><button type="button" class="place-back" data-action="place-close">${icon("i-back")}<span>${inRoute ? "К маршруту" : "Назад"}</span></button><div class="sheet-grabber"></div><button type="button" class="icon-btn place-collapse" data-action="place-close" aria-label="Вернуться назад">${icon("i-chevron-down")}</button></div>
           <div class="place-content">
             <div class="place-chips">${chips}</div>
             <h1 class="place-title">${escapeHtml(p.name.split("(")[0].trim())}</h1>
@@ -1324,7 +1324,7 @@
             ${step ? `<button type="button" class="route-link" data-nav="route" data-route="${escapeHtml(route.id)}">${icon("i-walks")}<span>Шаг ${step.stepNumber} в маршруте «${escapeHtml(route.title)}»</span>${icon("i-chevron-right")}</button>` : ""}
           </div>
           <div class="place-actions">
-            <button type="button" class="btn btn-icon-only ${state.memory.dislikedPlaces[p.id] ? "active" : ""}" data-place-action="no" aria-label="Не моё">${icon("i-close")}</button>
+            <button type="button" class="btn btn-icon-only ${state.memory.dislikedPlaces[p.id] ? "active" : ""}" data-place-action="no" aria-label="Не моё">${icon("i-close")}<span>Не моё</span></button>
             <button type="button" class="btn btn-outline-wow ${visited ? "active" : ""}" data-place-action="visited">Уже был</button>
             <button type="button" class="btn btn-ink ${wanted ? "active" : ""}" data-place-action="wanted">${icon("i-heart")}${wanted ? "В избранном" : "Хочу сюда"}</button>
           </div>
@@ -2333,7 +2333,12 @@
       persistWalk();
       if (state.walk.index >= state.walk.route.stops.length) finishWalk();
       else renderWalk();
-    } else if (name === "place-close") closeAction();
+    } else if (name === "place-close") {
+      const from = state.params.from;
+      if (from === "route" && state.params.routeId) navigate("route", { routeId: state.params.routeId }, { replace: true });
+      else if (["swipe", "favorites", "memory", "walks", "walk"].includes(from)) navigate(from, from === "walk" ? { routeId: state.walk?.route.id || "" } : {}, { replace: true });
+      else navigate("walks", {}, { replace: true });
+    }
     else if (name === "place-share") sharePlace(place(state.params.id));
     else if (name === "favorites-sort") {
       favSort = favSort === "desc" ? "asc" : "desc";

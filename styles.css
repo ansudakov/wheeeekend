@@ -461,7 +461,9 @@ img { display: block; max-width: 100%; }
 .route-link { margin-top: 10px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); color: var(--text); width: 100%; text-align: left; }
 .route-link span { flex: 1; font-size: 14px; font-weight: 700; }
 .route-link .icon { width: 20px; height: 20px; color: var(--route-text); }
-.place-actions { display: grid; grid-template-columns: 56px 1fr 1.4fr; gap: 8px; padding: 12px 0 calc(30px + env(safe-area-inset-bottom,0px)); border-top: 1px solid var(--line); background: var(--bg); }
+.place-actions { display: grid; grid-template-columns: 64px 1fr 1.4fr; gap: 8px; padding: 12px 0 calc(30px + env(safe-area-inset-bottom,0px)); border-top: 1px solid var(--line); background: var(--bg); }
+.place-actions .btn-icon-only { width: 64px; display: flex; flex-direction: column; gap: 1px; font-size: 10px; line-height: 1; }
+.place-actions .btn-icon-only .icon { width: 20px; height: 20px; }
 .place-actions .btn { min-height: 56px; border-radius: 16px; font-size: 15px; }
 .place-actions .btn-outline-wow.active { background: var(--tint-wow); }
 .place-actions .btn-ink.active { background: var(--route-text); }
@@ -874,6 +876,8 @@ html.is-offline .screen { min-height: calc(100dvh - 64px); }
 .place-controls { left: auto; right: 14px; justify-content: flex-end; }
 .place-sheet-top { position: relative; height: 36px; min-height: 36px; display: flex; justify-content: center; padding-top: 1px; }
 .place-sheet-top .sheet-grabber { align-self: flex-start; }
+.place-back { position: absolute; left: -8px; top: -5px; min-height: 44px; display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; border-radius: 12px; color: var(--text); font-size: 12px; font-weight: 800; }
+.place-back .icon { width: 18px; height: 18px; }
 .place-collapse { position: absolute; right: -8px; top: -5px; width: 44px; height: 44px; min-width: 44px; border: 0; background: transparent; color: var(--text-muted); }
 .place-content .place-chips { margin-top: 2px; }
 .place-tap, .swipe-photo-prev, .swipe-photo-next { background: radial-gradient(circle, var(--overlay-photo) 0 50%, transparent 53%); font-size: 24px; }
