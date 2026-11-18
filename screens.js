@@ -23,6 +23,8 @@
   let memoryTab = "visited";
   let installTab = "iphone";
   let authMode = "register";
+  let catalogQuery = "";
+  let catalogCategory = "all";
   let authState = { invite: "", status: "idle", message: "", busy: false };
   let walkTimer = null;
   const ACTIVE_WALK_KEY = "wheee_active_walk_v1";
@@ -555,16 +557,23 @@
 
   function weatherText() {
     const w = state.weather;
-    const now = new Date();
-    const day = W.WEEKDAYS[now.getDay()];
-    if (!w) return `Москва · ${day} · погода недоступна`;
+    if (!w) return "Центр Москвы · погода недоступна";
     const sign = w.temp > 0 ? "+" : "";
     let stale = false;
     try {
       const cached = JSON.parse(localStorage.getItem(W.STORAGE.weather) || "null");
       stale = Boolean(cached?.at && Date.now() - cached.at > 30 * 60 * 1000);
     } catch (e) {}
-    return `Москва · ${day} · ${sign}${w.temp}° · ${w.description}${stale ? " · ранее" : ""}`;
+    return `Центр · ${sign}${w.temp}° · ${w.description}${stale ? " · ранее" : ""}`;
+  }
+
+  function weatherSymbol() {
+    const code = state.weather?.weatherCode;
+    if (code == null) return "?";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "❄";
+    if ([51, 53, 55, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code)) return "☂";
+    if ([2, 3, 45, 48].includes(code)) return "☁";
+    return "☀";
   }
 
   function moodTiles() {
@@ -583,11 +592,15 @@
   }
 
   function renderWalks() {
+    if (state.filters.focus === "exhibition" && state.filters.duration === "short") {
+      state.filters.duration = "medium";
+      persistFilters();
+    }
     const locations = state.clusters.filter((c) => c.areaType !== "suburb");
     $("#screenRoot").innerHTML = `
       <section class="screen walks">
         <div class="walks-top">
-          <span class="weather-chip" title="Погода для центра Москвы"><span class="weather-sun">${icon("i-sun")}</span><span class="weather-copy">${escapeHtml(weatherText())}</span></span>
+          <span class="weather-chip"><span class="weather-sun" aria-hidden="true">${weatherSymbol()}</span><span class="weather-copy">${escapeHtml(weatherText())}</span></span>
           <button type="button" class="avatar" data-nav="profile" data-from="walks" aria-label="Профиль">${accountInitial()}</button>
         </div>
         ${state.walk ? `<button type="button" class="btn btn-secondary resume-walk" data-nav="walk" data-route="${escapeHtml(state.walk.route.id)}">${icon("i-play")} Продолжить прогулку · ${state.walk.index + 1}/${state.walk.route.stops.length}</button>` : ""}
@@ -596,7 +609,7 @@
         <div class="mood-grid">${moodTiles()}</div>
         <div class="section-label">Сколько есть времени</div>
         <div class="segmented">
-          <button type="button" class="${state.filters.duration === "short" ? "active" : ""}" data-duration="short"><strong>1,5 часа</strong><span>Короткая прогулка</span></button>
+          <button type="button" class="${state.filters.duration === "short" ? "active" : ""}" data-duration="short" ${state.filters.focus === "exhibition" ? 'disabled aria-label="Для музеев нужно больше времени"' : ""}><strong>1,5 часа</strong><span>Короткая прогулка</span></button>
           <button type="button" class="${state.filters.duration === "medium" ? "active" : ""}" data-duration="medium"><strong>2,5 часа</strong><span>Без спешки</span></button>
           <button type="button" class="${state.filters.duration === "long" ? "active" : ""}" data-duration="long"><strong>4 часа</strong><span>Большая прогулка</span></button>
         </div>
@@ -607,6 +620,9 @@
           ${locations.map((c) => `<button type="button" class="chip ${!state.filters.nearby && state.filters.clusterId === c.id && state.filters.focus !== "suburb" ? "active" : ""}" data-location="${c.id}">${escapeHtml(c.shortName)}</button>`).join("")}
           <button type="button" class="chip ${state.filters.focus === "suburb" ? "active" : ""}" data-location="suburb">Подмосковье</button>
         </div>
+        <button type="button" class="link-btn choose-district" data-action="choose-district">Все районы ↓</button>
+        ${state.filters.focus === "exhibition" ? `<div class="route-advice" role="status">На музей обычно нужно 1,5–2 часа и время на дорогу. Для музейного маршрута заложи минимум 2,5 часа.</div>` : ""}
+        <button type="button" class="catalog-entry" data-nav="catalog">${icon("i-building")} <span>Найти место в каталоге</span> ${icon("i-chevron-right")}</button>
         <button type="button" class="switch-row" role="switch" aria-checked="${state.memory.settings.allowVisitedIfNewExhibition !== false}" data-action="toggle-new-exhibitions">
           <span><strong>Звать в знакомые музеи</strong><span>если там открылась новая выставка</span></span>
           <span class="switch ${state.memory.settings.allowVisitedIfNewExhibition !== false ? "on" : ""}"><i></i></span>
@@ -617,6 +633,32 @@
           <span class="btn-cta-icon">${icon("i-arrow-right")}</span>
         </button>
       </section>`;
+  }
+
+  function renderCatalog() {
+    $("#screenRoot").innerHTML = `
+      <section class="screen catalog-screen">
+        <div class="topbar topbar-left">${backButton("catalog-back", "Назад")}<strong>Все места · ${state.places.length}</strong></div>
+        <h1 class="screen-title">Найди своё место</h1>
+        <label class="field"><span>Название, район или метро</span><input id="catalogSearch" type="search" autocomplete="off" placeholder="Например, Зотов или Пресня" value="${escapeHtml(catalogQuery)}"></label>
+        <label class="field"><span>Тип места</span><select id="catalogCategory"><option value="all">Все типы</option>${[...new Set(state.places.map((p) => p.category).filter(Boolean))].map((c) => `<option value="${escapeHtml(c)}" ${catalogCategory === c ? "selected" : ""}>${escapeHtml(categoryLabel(c))}</option>`).join("")}</select></label>
+        <p id="catalogCount" class="catalog-count"></p>
+        <div id="catalogResults" class="catalog-results"></div>
+      </section>`;
+    const input = $("#catalogSearch");
+    input.addEventListener("input", () => { catalogQuery = input.value; renderCatalogResults(); });
+    $("#catalogCategory").addEventListener("change", (event) => { catalogCategory = event.target.value; renderCatalogResults(); });
+    renderCatalogResults();
+  }
+
+  function renderCatalogResults() {
+    const query = catalogQuery.trim().toLocaleLowerCase("ru-RU");
+    const matches = state.places.filter((p) => (catalogCategory === "all" || p.category === catalogCategory) && (!query || [p.name, p.metro, p.shortDescription, W.clusterName(p.clusterId)].some((x) => String(x || "").toLocaleLowerCase("ru-RU").includes(query))));
+    $("#catalogCount").textContent = query ? `Найдено: ${matches.length}` : `Все ${matches.length} мест. Введи название, чтобы сузить список.`;
+    $("#catalogResults").innerHTML = matches.map((p) => `
+      <button type="button" class="catalog-item" data-place="${escapeHtml(p.id)}" data-from="catalog">
+        ${photoOrFallback(p)}<span><strong>${escapeHtml(p.name.split("(")[0].trim())}</strong><small>${escapeHtml(W.clusterName(p.clusterId))} · ${escapeHtml(categoryLabel(p.category))}</small></span>${icon("i-chevron-right")}
+      </button>`).join("") || `<div class="empty-state"><h2>Ничего не нашли</h2><p>Попробуй название района, метро или другую часть названия.</p></div>`;
   }
 
   function accountInitial() {
@@ -1035,7 +1077,7 @@
       <div class="route-step ${finish ? "finish" : ""}">
         <button type="button" class="step-thumb ${finish ? "finish-thumb" : ""}" data-place="${stop.id}" data-from="route" aria-label="Открыть место">
           ${stop.imageUrl ? `<img src="${escapeHtml(stop.imageUrl)}" alt="" loading="lazy">` : `<span class="photo-fallback">${icon("i-building")}</span>`}
-          <b>${finish ? "!" : stop.stepNumber}</b>
+          <b>${stop.stepNumber}</b>
         </button>
         <button type="button" class="step-text" data-place="${stop.id}" data-from="route">
           <strong>${escapeHtml(stop.name.split("(")[0].trim())}</strong>
@@ -1540,8 +1582,8 @@
       <div class="empty-state">
         <span class="empty-icon">${icon(favTab === "routes" ? "i-heart" : "i-building")}</span>
         <h2>Пока пусто</h2>
-        <p>${favTab === "routes" ? "Жми ♥ на маршруте — он сохранится здесь, даже без интернета." : "Свайпай место вправо — оно появится здесь, даже без интернета."}</p>
-        ${favTab === "routes" ? `<button type="button" class="btn btn-ink" data-nav="walks">Подобрать маршрут</button>` : `<button type="button" class="btn btn-ink" data-action="empty-swipe">Свайпнуть новые места</button>`}
+        <p>${favTab === "routes" ? "Жми ♥ на маршруте — он сохранится здесь, даже без интернета." : "Найди место и нажми «Хочу сюда» в его карточке — оно появится здесь."}</p>
+        ${favTab === "routes" ? `<button type="button" class="btn btn-ink" data-nav="walks">Подобрать маршрут</button>` : `<button type="button" class="btn btn-ink" data-nav="catalog">Найти место</button>`}
       </div>`;
   }
 
@@ -1645,12 +1687,16 @@
   }
 
   function emptyMemory() {
+    const content = memoryTab === "completed"
+      ? ["Прогулок пока нет", "Заверши прогулку — она появится здесь вместе с пройденными местами.", "Подобрать маршрут", "walks"]
+      : memoryTab === "disliked"
+        ? ["Пока всё интересно", "Места, которые ты отметишь «Не моё», появятся здесь. Их можно будет вернуть в подбор.", "Посмотреть открытия", "swipe"]
+        : ["Посещённых мест пока нет", "Отметь знакомые места в «Открытиях» или во время прогулки.", "Посмотреть открытия", "swipe"];
     return `
       <div class="empty-state">
         <span class="empty-icon">${icon("i-memory")}</span>
-        <h2>Пока пусто</h2>
-        <p>Здесь появятся места, где ты был. Отметь их в свайпе или пройди первую прогулку.</p>
-        <button type="button" class="btn btn-ink" data-action="empty-swipe">Свайпнуть новые места</button>
+        <h2>${content[0]}</h2><p>${content[1]}</p>
+        <button type="button" class="btn btn-ink" ${content[3] === "swipe" ? 'data-action="empty-swipe"' : 'data-nav="walks"'}>${content[2]}</button>
       </div>`;
   }
 
@@ -1662,6 +1708,7 @@
     $("#screenRoot").innerHTML = `
       <section class="screen more-screen">
         <div class="page-head"><h1 class="screen-title">Ещё</h1></div>
+        <button type="button" class="catalog-entry" data-nav="catalog">${icon("i-building")} <span>Все места · ${state.places.length}</span> ${icon("i-chevron-right")}</button>
         <button type="button" class="discover-card" data-action="open-discoveries">
           <span class="discover-stack">${discoveries.map((p, i) => `<span class="discover-photo discover-${i + 1}">${photoOrFallback(p)}</span>`).join("")}</span>
           <span class="discover-text"><span class="discover-title">Открытия ${discoveries.length ? '<em class="badge-wow">новые</em>' : ""}</span><span>Свайпай новые места и выставки — прогулки станут точнее под твой вкус.</span></span>
@@ -1678,7 +1725,7 @@
             ${[["auto", "Авто"], ["light", "Светлая"], ["dark", "Тёмная"]].map(([value, label]) => `<button type="button" class="${W.currentTheme() === value ? "active" : ""}" data-theme-choice="${value}" aria-pressed="${W.currentTheme() === value}">${label}</button>`).join("")}
           </div>
           <button type="button" class="settings-row" data-nav="install" data-from="more"><span>${icon("i-install")}</span><strong>Установить на экран «Домой»</strong></button>
-          <div class="settings-row"><span>${icon("i-check")}</span><strong>Офлайн-режим</strong><em class="text-route">${"serviceWorker" in navigator ? "Включён" : "Недоступен"}</em></div>
+          <div class="settings-row"><span>${icon("i-check")}</span><strong>Офлайн-режим</strong><em data-offline-status>Проверяем…</em></div>
           <button type="button" class="settings-row" data-nav="sources"><span>${icon("i-doc")}</span><strong>Источники данных</strong></button>
           <button type="button" class="settings-row" data-nav="privacy" data-from="more"><span>${icon("i-shield")}</span><strong>Политика конфиденциальности</strong></button>
           <a class="settings-row" href="${feedbackMail}"><span>${icon("i-chat")}</span><strong>Предложить место или ошибку</strong></a>
@@ -1686,6 +1733,7 @@
         <div class="more-spacer"></div>
         <div class="wordmark-footer">${wordmark(false)}<span>Wheee!ekend · версия ${APP_VERSION}</span></div>
       </section>`;
+    updateOfflineReady();
   }
 
   function themeName() {
@@ -1703,8 +1751,9 @@
         <div class="topbar topbar-left">${backButton("profile-back", "Назад")}<strong>Профиль</strong></div>
         <div class="profile-head"><span class="avatar avatar-lg">${accountInitial()}</span><div><h1>${escapeHtml(archetype())}</h1><p>${stats.visited} ${plural(stats.visited, "место", "места", "мест")} · ${stats.walks} ${plural(stats.walks, "прогулка", "прогулки", "прогулок")} · ${user ? "аккаунт" : "гость"}</p></div></div>
         <div class="account-card">
-          <strong>${user ? "Синхронизация включена" : "Не потеряй свою Москву"}</strong>
+          <strong>${user ? cloudSyncLabel() : "Не потеряй свою Москву"}</strong>
           <p>${user ? escapeHtml(user.email) : "Аккаунт — по приглашению и только для синхронизации между устройствами. Без него всё работает."}</p>
+          ${user ? `<p class="sync-detail">${cloudSyncDetail()}</p>` : ""}
           ${user ? `<div class="account-actions"><button type="button" class="btn btn-route" data-action="account-sync">Синхронизировать</button><button type="button" class="btn btn-dark-secondary" data-action="account-signout">Выйти</button></div>` : `<div class="account-actions"><button type="button" class="btn btn-route" data-nav="register" data-mode="register">У меня приглашение</button><button type="button" class="btn btn-dark-secondary" data-nav="register" data-mode="login">Войти</button></div>`}
         </div>
         <div class="section-label">Оформление</div>
@@ -1717,12 +1766,41 @@
         <div class="settings-list">
           <button type="button" class="settings-row" data-nav="install" data-from="profile"><span>${icon("i-install")}</span><strong>Установить на экран «Домой»</strong></button>
           <button type="button" class="settings-row" role="switch" aria-checked="${state.memory.settings.allowVisitedIfNewExhibition !== false}" data-action="toggle-new-exhibitions"><span>${icon("i-bell")}</span><strong>Новые выставки<small>в музеях, где ты уже был</small></strong><span class="switch ${state.memory.settings.allowVisitedIfNewExhibition !== false ? "on" : ""}"><i></i></span></button>
-          <div class="settings-row"><span>${icon("i-check")}</span><strong>Работает офлайн<small>${state.places.length} мест и твои отметки на телефоне</small></strong></div>
+          <div class="settings-row"><span>${icon("i-check")}</span><strong>Офлайн-доступ<small>${state.places.length} мест и твои отметки на телефоне</small></strong><em data-offline-status>Проверяем…</em></div>
           <button type="button" class="settings-row" data-nav="privacy" data-from="profile"><span>${icon("i-shield")}</span><strong>Конфиденциальность<small>что храним и как удалить</small></strong></button>
         </div>
         <div class="more-spacer"></div>
         <div class="wordmark-footer">${wordmark(false)}<span>Wheee!ekend · прогулки по Москве и Подмосковью</span></div>
       </section>`;
+    updateOfflineReady();
+  }
+
+  function cloudSyncLabel() {
+    const status = state.account.status || {};
+    if (status.syncing) return "Синхронизируем…";
+    if (status.dirty || status.lastError) return "Есть несохранённые изменения";
+    return status.lastSyncAt ? "Синхронизировано" : "Ожидаем первой синхронизации";
+  }
+
+  function cloudSyncDetail() {
+    const status = state.account.status || {};
+    if (status.dirty || status.lastError) return "Отметки есть на этом устройстве. Проверь интернет и нажми «Синхронизировать».";
+    if (!status.lastSyncAt) return "Пока нет подтверждения отправки данных в облако.";
+    return `Последняя успешная синхронизация: ${escapeHtml(new Date(status.lastSyncAt).toLocaleString("ru-RU"))}`;
+  }
+
+  async function updateOfflineReady() {
+    const labels = $all("[data-offline-status]");
+    if (!labels.length) return;
+    let ready = false;
+    try {
+      if ("serviceWorker" in navigator && navigator.serviceWorker.controller && "caches" in window) {
+        const shell = await caches.match(new URL("index.html", location.href).href);
+        const data = await caches.match(new URL("places_bundle.json", location.href).href);
+        ready = Boolean(shell && data);
+      }
+    } catch (e) {}
+    labels.forEach((label) => { if (label.isConnected) label.textContent = ready ? "Готов" : "Готовится"; });
   }
 
   // ==================== INSTALL ====================
@@ -1996,6 +2074,7 @@
     swipe: renderSwipe,
     taste: renderTaste,
     walks: renderWalks,
+    catalog: renderCatalog,
     loading: renderLoading,
     routes: renderRoutes,
     route: renderRoute,
@@ -2102,6 +2181,7 @@
     const mood = e.target.closest("[data-mood]");
     if (mood) {
       state.filters.focus = mood.dataset.mood;
+      if (state.filters.focus === "exhibition" && state.filters.duration === "short") state.filters.duration = "medium";
       state.filters.nearby = false;
       if (mood.dataset.mood === "suburb") state.filters.clusterId = "any";
       persistFilters();
@@ -2133,6 +2213,7 @@
         state.filters.clusterId = value;
       }
       persistFilters();
+      if (location.closest("#sheetRoot")) $("#sheetRoot").innerHTML = "";
       renderWalks();
       return;
     }
@@ -2286,7 +2367,11 @@
       navigate("loading");
     }
     else if (name === "loading-cancel") navigate("walks", {}, { replace: true });
-    else if (name === "routes-back") navigate("walks");
+    else if (name === "routes-back" || name === "catalog-back") navigate("walks");
+    else if (name === "choose-district") {
+      const districts = state.clusters.filter((c) => c.areaType !== "suburb");
+      openSheet(`<div class="sheet-pad"><h2 class="sheet-title">Выбери район</h2><div class="district-list"><button type="button" class="settings-row" data-location="any">Любой район</button>${districts.map((c) => `<button type="button" class="settings-row" data-location="${escapeHtml(c.id)}">${escapeHtml(c.shortName)}</button>`).join("")}<button type="button" class="settings-row" data-location="suburb">Подмосковье</button></div></div>`);
+    }
     else if (name === "share-route") shareRoute(state.routes[state.routeIndex]);
     else if (name === "route-back-routes") {
       clearRouteMap();
@@ -2336,7 +2421,7 @@
     } else if (name === "place-close") {
       const from = state.params.from;
       if (from === "route" && state.params.routeId) navigate("route", { routeId: state.params.routeId }, { replace: true });
-      else if (["swipe", "favorites", "memory", "walks", "walk"].includes(from)) navigate(from, from === "walk" ? { routeId: state.walk?.route.id || "" } : {}, { replace: true });
+      else if (["swipe", "favorites", "memory", "walks", "walk", "catalog"].includes(from)) navigate(from, from === "walk" ? { routeId: state.walk?.route.id || "" } : {}, { replace: true });
       else navigate("walks", {}, { replace: true });
     }
     else if (name === "place-share") sharePlace(place(state.params.id));

@@ -480,6 +480,7 @@
       if (!options.quiet) toast("Память синхронизирована");
       return true;
     } catch (e) {
+      updateAccount();
       if (!options.quiet) toast(e.message || "Не удалось синхронизировать");
       return false;
     }
