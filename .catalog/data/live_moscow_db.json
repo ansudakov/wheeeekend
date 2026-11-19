@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-11-16T11:45:34.014Z",
+  "syncedAt": "2026-11-19T11:53:51.739Z",
   "sources": [
     "Узнай Москву (um.mos.ru API v1 — места, музеи, особняки, маршруты)"
   ],
@@ -7,7 +7,7 @@
     "umMos": "ok",
     "kudago": "unavailable"
   },
-  "importedCount": 143,
+  "importedCount": 142,
   "kudagoCount": 0,
   "officialRoutesCount": 15,
   "places": [
@@ -746,7 +746,7 @@
       "durationMin": 45,
       "indoor": false,
       "quizPriority": 7,
-      "imageUrl": "https://um.mos.ru/content/miniature/place/694d41c3e1def.jpg",
+      "imageUrl": "https://um.mos.ru/content/miniature/place/6afec925852aa.jpg",
       "sourceName": "Узнай Москву (um.mos.ru)",
       "sourceUrl": "https://um.mos.ru/places/bolshaya-gruzinskaya-ulica/",
       "aliases": [
@@ -3753,30 +3753,6 @@
       ],
       "description": "Дом Аксакова — Гоголь праздновал здесь 40-летие писателя. Особняк пережил разборку до брёвен, воссоздание в кирпиче и пожар. Теперь тут музейное фондохранилище.",
       "secretTip": "Точный адрес: Сивцев Вражек пер., д. 30, стр. 1"
-    },
-    {
-      "id": "um_house_4269",
-      "name": "Храм преподобного Василия Исповедника у Рогожской заставы",
-      "clusterId": "taganka_krutitsy",
-      "category": "courtyard",
-      "subcategory": "Узнай Москву • Архитектура и дворы",
-      "coords": [
-        55.74530159783957,
-        37.683208731570666
-      ],
-      "address": "ул. Международная, д. 10, стр. 2",
-      "metro": "Площадь Ильича / Римская",
-      "durationMin": 25,
-      "indoor": false,
-      "quizPriority": 6,
-      "imageUrl": null,
-      "sourceName": "Узнай Москву (um.mos.ru)",
-      "sourceUrl": "https://um.mos.ru/houses/hram-prepodobnogo-vasiliya-ispovednika-u-rogozhskoy-zastavy/",
-      "aliases": [
-        "храм преподобного василия исповедника у рогожской заставы"
-      ],
-      "description": "Храм преподобного Василия Исповедника у Рогожской заставы — трёхпрестольный храм (1897) с 48-метровой колокольней, построенный на средства Василия Бахрушина.",
-      "secretTip": "Точный адрес: ул. Международная, д. 10, стр. 2"
     }
   ],
   "officialRoutes": [
