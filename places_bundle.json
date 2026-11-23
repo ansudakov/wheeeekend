@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T11:53:51.753Z",
+  "generatedAt": "2026-11-23T13:14:55.932Z",
   "clusters": [
     {
       "id": "basmanny",
@@ -6555,7 +6555,7 @@
     }
   ],
   "sourcesMeta": {
-    "syncedAt": "2026-11-19T11:53:51.739Z",
+    "syncedAt": "2026-11-23T13:14:55.922Z",
     "totalPlacesCount": 209,
     "umMosCount": 146,
     "sources": [

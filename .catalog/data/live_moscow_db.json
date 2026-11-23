@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-11-19T11:53:51.739Z",
+  "syncedAt": "2026-11-23T13:14:55.922Z",
   "sources": [
     "Узнай Москву (um.mos.ru API v1 — места, музеи, особняки, маршруты)"
   ],
@@ -3757,6 +3757,25 @@
   ],
   "officialRoutes": [
     {
+      "id": "um_route_429",
+      "umId": 429,
+      "name": "Маршрут по Москве великого лексикографа Владимира Даля",
+      "slug": "marshrut-po-moskve-velikogo-leksikografa-vladimira-dalya",
+      "coords": [
+        55.76180546419438,
+        37.5802728447161
+      ],
+      "finishCoords": [
+        55.768577104547,
+        37.553759310103
+      ],
+      "routePointsCount": 5,
+      "lengthMeters": 13676,
+      "timeMinutes": 182,
+      "imageUrl": "https://um.mos.ru/content/miniature/route/6b004fac880a0.jpg",
+      "sourceUrl": "https://um.mos.ru/routes/marshrut-po-moskve-velikogo-leksikografa-vladimira-dalya/"
+    },
+    {
       "id": "um_route_428",
       "umId": 428,
       "name": "Маршрут по Москве всенародно любимого артиста Аркадия Райкина",
@@ -4021,25 +4040,6 @@
       "timeMinutes": 95,
       "imageUrl": "https://um.mos.ru/content/miniature/route/6a6314e02ad6e.jpg",
       "sourceUrl": "https://um.mos.ru/routes/vyhodnoy-s-naslediem-26-iyulya-2026-g-ot-belorusskoy-do-dostoevskoy/"
-    },
-    {
-      "id": "um_route_414",
-      "umId": 414,
-      "name": "«Выходной с наследием» 26 июля 2026 г.: «От храма слов — к храму любви и музыки»",
-      "slug": "-ot-hrama-slov-k-hramu-lyubvi-i-muzyki",
-      "coords": [
-        55.750975327508,
-        37.60922190741
-      ],
-      "finishCoords": [
-        55.74791848463104,
-        37.58594512939454
-      ],
-      "routePointsCount": 12,
-      "lengthMeters": 3544,
-      "timeMinutes": 41,
-      "imageUrl": "https://um.mos.ru/content/miniature/route/6a4baf5942ab3.jpg",
-      "sourceUrl": "https://um.mos.ru/routes/-ot-hrama-slov-k-hramu-lyubvi-i-muzyki/"
     }
   ]
 }
